@@ -1,2 +1,2 @@
 # econR
-Introduction Econometrics with R master course in JUXFE
+Introductory Econometrics with R master course in JXUFE
