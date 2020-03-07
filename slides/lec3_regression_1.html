@@ -360,6 +360,45 @@ abline(lm.set2, col = "steelblue")
 
 &lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-11-1.png" width="504" /&gt;
 ]
+
+---
+# 斜率系数的假设检验
+原假设 `\(H_0: \beta_1 = \beta_{1,0}\)`。备择假设为 `\(H_1:\beta_1 \neq \beta_{1,0}\)`。步骤如下：
+1. 计算 `\(\hat{\beta}_1\)` 的标准误：
+`$$SE(\hat{\beta}_1) = \sqrt{ \hat{\sigma}^2_{\hat{\beta}_1} } \ \ , \ \ 
+  \hat{\sigma}^2_{\hat{\beta}_1} = \frac{1}{n} \times \frac{\frac{1}{n-2} \sum_{i=1}^n (X_i - \overline{X})^2 \hat{u_i}^2 }{ \left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2 \right]^2}.$$`
+2. 计算t统计量值
+`$$t = \frac{\hat{\beta}_1 - \beta_{1,0}}{ SE(\hat{\beta}_1) }.$$`
+3.如果t统计量大于1.96，或者p值（计算公式如下）小于0.05，拒绝原假设。
+`$$\begin{align*}
+    p \text{-value} =&amp; \, \text{Pr}_{H_0} \left[ \left| \frac{ \hat{\beta}_1 - \beta_{1,0} }{ SE(\hat{\beta}_1) } \right| &gt; \left|        \frac{ \hat{\beta}_1^{act} - \beta_{1,0} }{ SE(\hat{\beta}_1) } \right| \right] 
+    \approx 2 \cdot \Phi(-|t^{act}|)
+  \end{align*}$$`
+  
+---
+# 实例
+
+```r
+data(CASchools)
+CASchools$STR &lt;- CASchools$students/CASchools$teachers
+CASchools$score &lt;- (CASchools$read + CASchools$math)/2
+linear_model &lt;- lm(score ~ STR, data = CASchools)
+summary(linear_model)$coefficients
+&gt;               Estimate Std. Error   t value      Pr(&gt;|t|)
+&gt; (Intercept) 698.932949  9.4674911 73.824516 6.569846e-242
+&gt; STR          -2.279808  0.4798255 -4.751327  2.783308e-06
+```
+
+p值接近于0，意味着如果原假设 `\(H_0: \beta_1 = 0\)` 成立，假设我们可以获得多次观测值并且估计模型的系数，那么我们能得到 `\(\hat\beta_1 \geq |-2.28|\)` 的概率接近于0。
+
+然而实际的观测数据计算出来的 `\(\hat\beta_1 = -2.28\)`, 也就意味着在原假设成立的情况下，发生了几乎不可能发生的事情 (即小概率时间)。
+
+因此我们应该拒绝原假设。
+
+---
+# p值演示
+书中的代码相当繁琐，建议大家一步一步运行，搞清楚每一步的作用。
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-13-1.png" width="792" style="display: block; margin: auto;" /&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
