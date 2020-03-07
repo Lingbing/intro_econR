@@ -1,0 +1,495 @@
+---
+title: "R 简介"
+subtitle: "<第一部分>"
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">",
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+```
+
+
+background-image: url(https://d33wubrfki0l68.cloudfront.net/62bcc8535a06077094ca3c29c383e37ad7334311/a263f/assets/img/logo.svg)
+background-size: 140px
+background-position: 70% 78%
+
+# R是什么?
+
+R是备受欢迎的统计分析软件环境，可以在三个主要平台运行。2000年2月29日R发布其1.0.0版本，迄今已20年的时间。它的主要特性有：
+
+- 开源，免费，庞大的社区支持
+
+- 完备的第三方软件包加持 [(看看R能做什么？)](https://cran.r-project.org/web/views/)
+
+- 数据科学时代的主流语言之一，学界和业界通用
+
+- 强大的数据处理与可视化功能
+
+- 完善的[计量分析模块](https://cran.r-project.org/web/views/Econometrics.html)
+
+- 强大的图形用户界面[RStudio](https://rstudio.com/)<sup>*</sup>
+
+.footnote[[*] 右上角是RStudio的图标，RStudio 与 R 没有官方联系。]
+
+---
+background-image: url(https://www.r-project.org/Rlogo.png)
+background-size: 100px
+background-position: 90% 8%
+
+# R的优点？
+- 快速和免费
+- 最新的统计方法一般都出现在R社区，SPSS, SAS一般落后数年。
+- 强大的绘图模块。强大的数据处理模块。
+- 活跃的用户社区
+- 完善的模拟、编程和密集计算分析功能。
+- 迫使你仔细思考你的分析过程。
+- 各种数据库接口，如SQL等。
+
+R的缺点？
+- 刚开始学习难度大，[陡峭的学习曲线](https://www.zhihu.com/question/266441562) <sup>*</sup>
+- 需要查找众多的第三包和可用的函数
+- 基于内存的计算，直接处理大数据能力受限。
+
+.footnote[[*] 什么是学习曲线？]
+
+---
+background-image: url(https://d33wubrfki0l68.cloudfront.net/db11a793584a9307185b4925aa17c966d04ba211/cdfee/assets/img/2020-timeline.png)
+background-position: 50% 50%
+background-size: 900px
+class: center, bottom
+
+### RStudio的发展历史轨迹图
+
+
+---
+# 一些有用的语法
+
+- `c( )` 可以理解为combine：把一些元素组合起来
+```{r}
+# 将1， 4， 6， 9四个数组合起来（得到向量）
+c(1, 4, 6, 9)
+```
+
+- `ls()` 列出当前环境<sup>1</sup>中的所有已经生成的对象。
+
+- `<-` : R专用的赋值符号，也可以用`=`来[赋值](http://www.win-vector.com/blog/2013/04/prefer-for-assignment-in-r/) 。
+
+- `getwd() setwd()`：获取/设置工作目录地址。<sup>2</sup>
+
+```{r}
+getwd()
+```
+
+.footnote[
+
+[1] 什么是R的环境？-> 对应RStudio界面中的`Environment` -> Global Environment。
+
+[2] 什么是工作目录？ -> RStudio中的File -> More -> Go to working directory
+]
+---
+# R 数据类型
+
+- R 是个方便的科学计算器 (一般在控制台 -Console- 中键入即可)
+- R 有5种原子类型（atomic objects）: 可以用`class()`函数查看
+
+    - 数值型：numeric [比如 1.23, pi]
+    - 整数型：integer [1L, L表示Long，表示长整型]
+    - 复数型：complex [1+2i, 实部 + 虚部]
+    - 逻辑型：logical boolean [e.g. TRUE or FALSE, T or F]
+    - 字符型：character: ["统计分析", "R", "无敌"]
+    
+- 所谓原子类型，就是指不能再细分的数据类型，其他所有的数据形式都可以理解为原子类型的组合形式。
+
+以下代码生成一个变量`myvec`并赋值`pi`值，再输出`myvec`取值值和原子类型。
+`>`是输出的前缀，[1]表示输出的序号。
+
+```{r}
+myvec <- pi
+print(myvec)
+class(myvec)
+```
+
+---
+# 数据组合类型：vector 向量
+
+vector: 由多个具有同样原子类型的元素组合而成的一维向量
+```{r}
+# 数值型向量
+vec1 <- c(1, 2, 3, 4, 5)
+vec1
+# 字符型向量
+vec2 <- c("我", "喜欢", "R")
+vec2
+```
+
+如果在同一个向量中混合不同原子类型元素，则进行强制转换成一种原子类型。<sup>*</sup>
+```{r}
+(vec3 <- c(25, TRUE))
+(vec4 <- c(25, TRUE, "我爱R"))
+```
+.footnote[[*] 思考两个问题：1. 强制转换的优先级排序是怎样的？2. vec3代码加了括号，与之前vec1有何不同？]
+
+---
+# 向量:练习与思考 (1)
+
+运行以下代码，`length()`，`mean()`等在R中称为函数。
+```{r}
+num <- c(1, -2, 4, 6, 9)
+length(num) #向量长度
+mean(num) # 均值
+sd(num) # 标准差
+summary(num) # 汇总统计
+```
+`nchar()` 也是函数，但是工作方式与之前的函数有所不同。<sup>*</sup>
+```{r}
+char <- c("I", "like", "R")
+length(char)
+nchar(char)
+```
+
+.footnote[[*] 有何不同？]
+
+---
+# 向量:练习与思考 (2)
+生成序列（等差，等比）是非常多见的操作，也是R编程的基础知识。生成的序列就是一个数值型向量。请看以下练习，掌握`rep`和`seq`的用法。
+```{r}
+go <- 1:20
+back <- 20:1
+(seqby <- seq(from = 1, to = 20, by = 0.5))
+seqlength <- seq(from = 1, to = 20, length = 40)
+seqalong <- seq_along(seqby)
+seqlen <- seq_len(length(seqby))
+rep(x=1, times = 100)
+rep(x = 1:5, times = 3)
+rep(x = 1:5 , each = 3)
+rep(x = 1:5 , times = 2 , each = 3)
+```
+
+
+
+
+---
+# 数据组合类型：matrix 矩阵
+
+matrix: 由多个**长度相同**的vector（向量）组成的数据组合类型。<sup>1</sup>
+matrix 与vector一样，只能包含一种原子类型。 
+如果混用，则自动发生强制类型转换。<sup>2</sup>
+
+```{r}
+# matrix的元素组合方式，默认是列优先
+(mat1 <- matrix(1:15, nrow = 3, ncol = 5)) 
+# 如果混进其他原子类型，会发生什么？
+(mat2 <- matrix(c(1:15, "a", "b", "c"), nrow = 3, ncol = 6))
+```
+
+
+.footnote[**思考题**：
+
+[1] 代码中的mat1生成过程，如何设置为行优先？
+
+[2] 请尝试混进其他类型，观察优先级。
+]
+
+---
+# 矩阵：练习与思考
+
+- 评论：矩阵不适合存储数据。<sup>*</sup>
+
+```{r}
+mat3 <- matrix(1:4, 2, 2)
+mat4 <- matrix(3:6, 2, 2)
+mat3 + mat4 #矩阵加法
+mat3 * mat4 # 矩阵乘法？不是！
+mat3 %*% mat4 # 这才是矩阵乘法
+det(mat3) #求行列式
+solve(mat3, 1:2) #解方程组
+```
+
+.footnote[[*] 为什么呢？]
+
+
+---
+# 数据框 data frame
+
+数据框，data.frame: 类似矩阵，每一列必须有相同长度但是每一列可以是不同的原子类型。
+```{r}
+(dt <- data.frame(x = 1:3, y = c("a", "b", "c"), z = c(T, F, T)))
+dim(dt) # 维度
+nrow(dt) # 行数
+ncol(dt) # 列数
+colnames(dt) #列名，这个很重要。为什么？
+rownames(dt) # 行名
+str(dt) # 查看结构
+```
+
+---
+# 数据框：汇总统计
+
+`summary` 可以对向量进行汇总统计，那可以用作数据框吗？一试便知：
+```{r}
+dt2 <- data.frame(x = 1:4, y = LETTERS[1:4], z = rep(T, 4))
+summary(dt2)
+```
+
+可以看到，`summary`给出了每一列的汇总统计表，而且根据变量原子类型的不同，给出了不同的，却又是最为合适的汇总统计方法。
+
+- 这里，`summary`是一个泛型函数（generic function），因此才有如此的灵活性。
+
+- 如果你想深挖，可以看看什么是[泛型函数](http://adv-r.had.co.nz/S3.html)。
+
+---
+# 列表 list
+
+list: 列表，类似数据框，但是每一列可以是**不一样""的长度，甚至可以嵌套，是R中最复杂和最多见的数据类型。比如，回归模型的输出多为list类型。
+
+- 首先，以下代码会出错，为什么？
+```{r eval=FALSE}
+dt3 <- data.frame(x = 1:4, y= LETTERS[1:5], z = rep(T, 4))
+```
+
+- 需要用list：
+
+```{r}
+(ls1 <- list(x = 1:4, y = LETTERS[1:5], z = rep(T, 4)))
+```
+
+
+---
+
+# 列表结构
+因为每一列的长度可能不同，因此列表不能用表格的形式展示数据。
+
+我们看一下上面列表的结构和汇总统计：<sup>*</sup>
+```{r}
+str(ls1)
+# 
+summary(ls1)
+```
+
+.footnote[[*] 此处summary的结果与data.frame的汇总结果有何不同？]
+
+---
+# 模型输出的列表结构: 练习
+
+.pull-left[
+- 以下代码建立x和y的线性模型，并输出model的结果。
+
+- 但是如果直接调用模型名称mod1结果过于简约。因为mod1包含了丰富的模型拟合的结果，它其实是一个列表结构，
+
+- 你可以用`str(mod1)`先感受一下。
+```{r}
+x = 1:10; y = 2*x + rnorm(10)
+mod1 <- lm(y~x)
+mod1
+```
+]
+
+.pull-right[
+```{r fig.height=5}
+plot(x, y); abline(mod1, col = 2, lwd =2)
+```
+]
+
+---
+# 索引（indexing）操作
+所谓索引，就是按照要求提取自己想要的部分数据（而不是全部）。先看向量索引：
+```{r}
+x = c(1, 4, 2, 5, 6, 8, 6, 9, 10)
+x[9]
+x[1:3]
+x[c(2, 6, 7)]
+```
+
+可以看出，向量使用`[]`作为索引操作符，使用数值或者数值向量作为索引位置。与很多语言（比如Python）,R向量的第一位是从1开始，而不是0。
+
+更重要的是使用逻辑值向量（必须与待索引向量登场）进行索引：
+```{r}
+x2 <- c(1, 2, 3)
+x2[c(T, F, T)]
+# 取出了所有TRUE位置对应的x2的元素
+```
+
+---
+# 逻辑索引为什么重要？
+
+请索引出x中所有小于5的数，如何索引？可以看出`x < 5`返回了与`x`等长度的逻辑值向量，TRUE的位置代表该位置的元素值满足该条件，FALSE则为不满足。
+
+```{r}
+x < 5
+```
+
+因此，这个逻辑值向量可以作为索引值。
+
+```{r}
+x[x < 5]
+```
+
+- 那么任务来了：如何去除x中不等于5的数？-> 逻辑操作：不 (negate) 等于:`!=`
+- 如何得到x中等于6的个数？-> 逻辑操作：等于: `==`
+- 如何取出`2 < x < 8`的数？-> 逻辑操作：“与” (and)：`&`
+- 如何如初`x > 9`或者 `x < 3`的数？-> 逻辑操作：“或” (or): `|`。
+
+---
+# 索引与逻辑操作练习
+
+注意学习`unique()`和`duplicated()`函数
+
+```{r}
+x <- c(3:5, 11:8, 8 + 0:5)
+x[x >= 2 & x <= 8]
+x[x < 2 | x > 8]
+x[x == 8]
+x[x!=8]
+(ux <- unique(x))
+(dx <- duplicated(x))
+x[dx]
+```
+
+---
+# 索引矩阵
+
+矩阵有两个维度，行维度和列维度，在每单个维度上，其索引方式与向量一样。因此我们只需要区分两个维度即可。
+```{r}
+x <-  matrix(1:24, nrow = 4, ncol = 6, byrow = T)
+x[1:2, ]
+x[, c(1, 3, 5)]
+x[1:2, c(1, 3, 5)]
+```
+
+---
+# 索引数据框
+数据框和矩阵具有相同的数据结构形式，因此矩阵的索引方式也适用于数据框。
+但是数据框有自己的几个独特索引方式：
+1. 美元符号`$`索引
+```{r}
+dt
+dt$x
+dt$"x"
+# df$c("x", "y")
+```
+
+.pull-left[
+优点：直接简单
+]
+
+.pull-right[
+缺点：但是每次只能取一列
+]
+
+
+---
+# 数据框索引（2）
+
+.pull-left[
+2 名称索引
+```{r}
+dt["x"]
+dt[c("x", "y")]
+```
+]
+.pull-right[
+3 列名索引
+```{r}
+dt[, "x"]
+# 注意此处与左边名称索引结果的区别
+
+dt[, c("x", "y")]
+```
+]
+
+- [`tibble`](https://tibble.tidyverse.org/)包保留了data.frame的诸多优点，但是解决了data.frame的诸多痛点，提供了一个更为“干净”（tidy）的数据框数据结构。
+
+---
+# 列表的索引
+列表可以用美元符号索引，也可以用元素名索引(类似数据框)
+```{r}
+ls1 <- list(x = 1:4, y = LETTERS[1:5], z = rep(T, 4))
+ls1$x
+ls1["y"]
+ls1[c("x", "y")]
+```
+.pull-left[
+列表有自己特有的双中括号索引，注意与单中括号的区别。
+```{r}
+ls1[[1]]
+ls1[["y"]]
+```
+]
+
+.pull-right[
+但是双中括号名称索引只能是单个名称。比如以下代码会报错：
+```{r eval=F}
+ls1[[c("x", "y")]]
+# Error in ls1[[c("x", "y")]] : 下标出界
+```
+]
+
+---
+# 特殊的R对象
+R中有完备的特殊对象集合：正无穷大(Inf)，负无穷大时(-Inf), 无理数(NaN)和空值NULL
+```{r}
+(x <- 1/0)
+log(0)
+sqrt(-4)
+(x <- c())
+```
+`NA`在R中表示缺失值，表示Not Available。`is.na()`可以查看向量元素是否缺失。<sup>*</sup>
+```{r}
+x <- c(1, NA, 3, NA, 4, NA)
+length(x)
+is.na(x)
+```
+.footnote[[*]思考：如何计算x中缺失值的个数？]
+
+---
+# Factor类型：在R中表示分类变量
+factor有两个主要参数控制分类变量的表示，分别是`levels`表示分类变量的水平，和`labels`表示各个水平对应的标签值。
+```{r}
+grade = c(3, 4, 2, 2, 4, 1, 1, 4, 2, 2)
+factor(grade)  
+grade
+gender = c(rep("male", 3), rep("female", 4))
+gender = factor(gender)
+gender
+size = factor(c(2, 3, 1, 1, 1, 2, 3, 3), levels = c(1, 2, 3, 4),
+  labels = c("small", "medium", "large", "extra large"))
+size
+```
+---
+# factor类型有什么用？
+.pull-left[
+```{r}
+summary(size)
+```
+- `summary`识别出`size`是一个分类型变量，并且用合适的方法对其进行了汇总统计，也就是这里展示的频数表。
+- 要注意到，`size`变量中没有取值为4的值，但是却有4对应的水平值和标签值。
+在右图中对此也有体现。
+- factor可以让泛型函数识别出该变量为分类变量，并得到合适的处理。
+- 在之后的回归模型中，我们会遇到分类型的变量，比如性别，公司类型等，都应该用factor表示它们，这样相关的回归函数会用合适的方法处理这些变量。
+]
+.pull-right[
+```{r fig.height=5}
+plot(size)
+```
+同样，plot函数也识别出了给它的变量类型是分类变量，并且用合适的绘图方式对其进行可视化，也就是条形图的方式。
+]
+
+
+
+
+

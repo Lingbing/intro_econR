@@ -1,0 +1,687 @@
+---
+title: "R 简介"
+subtitle: "<第二部分>"
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">",
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+```
+
+# R函数: 数学运算 (1)
+- R的各种功能基本都是通过所谓“函数”（function）实现的。最简单的就是数学运算函数。
+```{r}
+x <- 1:10
+exp(x) # 指数函数
+log(x) # 对数函数
+abs(x) # 绝对值函数
+sqrt(x) # 平方根函数
+x^(1/3) # 立方根函数
+```
+
+- 这些数学运算函数的特点是可以自适应向量的长度（自动向量化），他们返回的计算结果与输入是等长的。
+
+---
+# R函数：数学运算 (2)
+
+- 还有一些常用的数学运算函数如下，请先自行猜测再通`help()`函数学习这些函数的功能细节。
+```{r}
+x = pi
+floor(x)
+ceiling(x)
+trunc(x)
+round(x, digits = 1)
+```
+看下这些函数的类别class，包括运算符号，其本质也是function
+```{r}
+c(class(exp), class(floor), class(trunc))
+class(`+`)
+```
+
+---
+# R函数：汇总函数
+
+所谓汇总函数，是指给定一个向量值（可以认为是给定一个样本），计算这个样本的统计量值，如均值、标准差、峰度、偏度等。这些汇总函数不同于运算函数，只返回一个值。
+```{r}
+height = c(178, 176, 170, 189, 185, 167, 155, 190)
+c(length(height), mean(height), sd(height))
+```
+利用第三方包，我们可以获得更加灵活的汇总函数。下面使用`summarytool`包的`descr()`函数：
+```{r warning=F , message=F}
+library(summarytools)
+descr(height, stats = c("mean", "sd", "min", "max"), transpose = T) 
+```
+
+这个函数`descr`使用了较为复杂的function调用。
+
+---
+# R函数
+`descr`函数实现了更为复杂的汇总。其中`stats`和`transpose`称为这个函数的参数。通过`args`函数我们可以查看一个函数包括哪些参数。当然，在help帮助文档中，也可以看到。
+```{r}
+args(descr)
+```
+可以看出，这个函数有着很多参数。总体而言，参数的多寡给我们的感觉是，它可以实现很多功能，非常灵活。
+
+这些参数中，有些有赋值操作，有些没有。比如`split.tables = 100`表示`split.tables`这个参数如果不做另外设定，它的默认值是100。`stats = st_options("descr.stats")`表示`stats`这个参数如果不做另外设定，那么它就被设定为`st_options("descr.stats")`。我们看一下`st_options("descr.stats")`是什么
+
+
+---
+# 函数参数
+```{r}
+st_options("descr.stats")
+st_options("descr.transpose")
+```
+
+通过查看帮助，我们知道`stats`函数代表我们需要哪些统计量值，其默认值为`all`，表示所有的统计量。我们不需要这个多，因此修改它的取值得到我们想要的四个统计量值。
+
+通过修改`stats = c("mean", "sd", "min", "max")`，表示我们只需要四个统计量值：均值，标准差，最小值，最大值。
+
+另外发现这四个统计量的输出表示，默认的方向是纵向的，也就是`transpose = FALSE`，在变量较少时，这会占用过多的纵向空间，可以通过修改参数`transpose =T`将其设定为横向。
+
+最后，函数中最后可能会有一个用省略号`...`代表的参数，这表示**额外参数**，想*进阶*的同学可以[看这里](https://www.burns-stat.com/the-three-dots-construct-in-r/)。
+
+
+---
+# 随机变量与概率分布
+假设变量X是均匀骰子面朝上的点数，其取值组合为{1, 2, 3, 4, 5, 6}，取值概率都为1/6。这是一个离散的随机变量，其概率分布和累计概率分布可以用下表表示：
+```{r message=F}
+library(knitr)
+library(tibble)
+library(kableExtra)
+x <- tibble(x = 1:6, prob = rep(1/6, 6), cum_prob = cumsum(prob))
+kable(x) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+---
+# 概率与累积概率
+.pull-left[
+```{r}
+probability <- rep(1/6, 6) 
+plot(probability, 
+     main = "Probability Distribution",
+     xlab = "outcomes") 
+```
+
+]
+
+.pull-right[
+```{r}
+cum_probability <- cumsum(probability)
+plot(cum_probability, 
+     xlab = "outcomes", 
+     main = "Cumulative Probability Distribution")
+```
+
+]
+
+---
+# Bernoulli实验
+
+一次投硬币实验，如果记面朝上为H，面朝下为T，则该实验称为Bernoulli实验，也就是实验结果只有两种，并且概率相等，各位0.5。下面的代码模拟投一次硬币：
+```{r}
+sample(c("H", "T"), 1)
+```
+
+如果投掷10次，则为：
+```{r}
+sample(c("H", "T"), 10, replace = T)
+```
+
+
+
+如果记变量X为n此投硬币实验中面朝上的总次数，每次面朝上的概率为p，则该变量是一个随机变量，并服从二项式分布:$$X\sim B(n,p)$$
+
+在n次实验中观察到k次面朝上的概率为：
+$$f(X=k)=P(k)=\begin{pmatrix}n\\ k \end{pmatrix} \cdot p^k \cdot
+(1-p)^{n-k}=\frac{n!}{k!(n-k)!} \cdot p^k \cdot (1-p)^{n-k}$$
+
+---
+# R中的概率密度计算
+
+对于二项式分布，假设我们想要计算$$P(k=5\vert n = 10, p = 0.5)$$
+```{r}
+dbinom(x = 5,
+       size = 10,
+       prob = 0.5) 
+```
+如果要计算$$P(4 \leq k \leq 7)$$
+```{r}
+sum(dbinom(x = 4:7, size = 10, prob = 0.5))
+```
+因为$$P(4 \le k \le 7) = P(k \le 7) - P(k \le 3 )$$
+
+---
+# 累积概率密度
+
+因此也可以用二项式累计概率密度函数计算：
+```{r}
+pbinom(size = 10, prob = 0.5, q = 7) - pbinom(size = 10, prob = 0.5, q = 3) 
+```
+
+利用以下代码，我们可以绘制X分布的概率密度图（PDF）
+.pull-left[
+```{r eval=FALSE}
+k <- 0:10
+probability <- dbinom(x = k, 
+                      size = 10,  
+                      prob= 0.5)
+plot(x = k, 
+     y = probability, 
+     main = "Probability Distribution Function") 
+```
+]
+
+.pull-right[
+```{r echo=FALSE, fig.height=6}
+k <- 0:10
+probability <- dbinom(x = k, size = 10,  prob= 0.5)
+plot(x = k, y = probability, main = "Probability Distribution Function") 
+```
+]
+
+---
+# 和累计概率分布(CDF)图
+.pull-left[
+```{r eval=FALSE}
+k <- 0:10
+prob <- pbinom(q = k, 
+               size = 10, 
+               prob = 0.5)
+plot(x = k, 
+     y = prob,
+     main = "Cumulative Distribution Function") 
+```
+]
+
+.pull-right[
+```{r echo=FALSE, fig.height=6}
+k <- 0:10
+prob <- pbinom(q = k, 
+               size = 10, 
+               prob = 0.5)
+plot(x = k, 
+     y = prob,
+     main = "Cumulative Distribution Function") 
+```
+]
+
+- 我们已经学习了二项式分布的两个函数`dbinom`和`pbinom`，分别表示求概率密度和求累积概率密度。
+
+- 还有两个与二项式分布相关的函数是`rbinom`和`qbinom`，分别表示从二项式分布中生成随机样本 *(r)andom sample* 和二项式分布的某个分位数 *(q)uantile*。
+
+---
+# 分布函数四君子
+
+- 这四个函数`d,p,q,r`是每个分布函数都具备的。比如正态分布就有四个类似的函数。我们可以称它们为分布函数的四君子。下面以正态函数为例:
+.pull-left[
+```{r eval=F, fig.height=4}
+x <- rnorm(1000)
+hist(x, breaks = 30, col = "steelblue", border = "white",
+     main = "Histogram of Normal Random Numbers", xlab = "", ylab = "Frequency")
+```
+```{r fig.height=4}
+curve(dnorm(x),
+      xlim = c(-3.5, 3.5),
+      ylab = "Density", 
+      main = "Standard Normal Density Function")
+```
+
+]
+
+.pull-right[
+```{r echo = F,fig.height=6}
+x <- rnorm(1000)
+hist(x, breaks = 30, col = "steelblue", border = "white",
+     main = "Histogram of Normal Random Numbers", xlab = "", ylab = "Frequency")
+```
+]
+
+---
+# 累积概率密度函数与分位数函数
+
+.pull-left[
+```{r eval = F, fig.height=4}
+curve(pnorm(x), 
+      xlim = c(-3.5, 3.5), 
+      ylab = "Density", 
+      main = "Standard Normal Cumulative Distribution Function")
+```
+]
+
+.pull-right[
+```{r echo = F, fig.height=4}
+curve(pnorm(x), 
+      xlim = c(-3.5, 3.5), 
+      ylab = "Density", 
+      main = "Standard Normal Cumulative Distribution Function")
+```
+]
+
+
+qnorm是pnorm的逆操作: pnorm是给定a (点)求 p (面积), qnorm是给定p求a 。
+$$
+P(X \le a) = p
+$$
+如果p = 0.975，求a:
+```{r}
+qnorm(0.975)
+```
+
+---
+双侧尾部面积都是2.5%, a = 1.96, p = 0.975。利用`tigerstats`包，可以绘制如下图：
+
+```{r message=F, fig.align='center', fig.height=5}
+library(tigerstats)
+pnormGC(c(-1.96,1.96),region="between",mean=0,
+        sd=1,graph=TRUE)
+```
+
+---
+# 卡方分布
+M个独立的标准正态分布随机变量之和构成一个自由度为M的卡方分布
+$$
+\begin{align*}
+Z_1^2 + \dots + Z_M^2 = \sum_{m=1}^M Z_m^2 \sim \chi^2_M \ \ \text{with} \ \ Z_m \overset{i.i.d.}{\sim} \mathcal{N}(0,1) \tag{2.2}
+\end{align*}
+$$
+下面绘制自由度为3的卡方分布的PDF和CDF。
+.pull-left[
+```{r eval=F}
+curve(dchisq(x, df = 1), 
+      xlim = c(0, 15), xlab = "x", ylab = "Density", 
+      main = "Chi-Square Distributed Random Variables")
+
+for (M in 2:7) {
+  curve(dchisq(x, df = M), xlim = c(0, 15), 
+        add = T, col = M)
+}
+
+legend("topright", as.character(1:7), col = 1:7 , 
+       lty = 1, title = "D.F.")
+```
+
+]
+.pull-right[
+```{r echo=F, fig.height=6}
+curve(dchisq(x, df = 1), 
+      xlim = c(0, 15), xlab = "x", ylab = "Density", 
+      main = "Chi-Square Distributed Random Variables")
+
+for (M in 2:7) {
+  curve(dchisq(x, df = M), xlim = c(0, 15), 
+        add = T, col = M)
+}
+
+legend("topright", as.character(1:7), col = 1:7 , 
+       lty = 1, title = "D.F.")
+```
+
+]
+
+---
+# 学生t分布
+Z为标准正态随机变量， W是自由度为M的卡方随机变量，Z和W相互独立，则有t分布
+$$\frac{Z}{\sqrt{W/M}} =:X \sim t_M$$
+X服从自由度为M的学生t分布(Student t distribution). t分布是类似于正态分布的对称钟型分布，尾部比正态分布更厚，在自由度较大时，t分布逼近于正态分布。t分布的矩性质为
+$$\begin{align} E(X) =& 0, \ M>1 \\
+\text{Var}(X) =& \frac{M}{M-2}, \ M>2
+\end{align}$$
+
+.footnote[[谁是学生？]
+[t分布与啤酒厂的故事](https://blog.csdn.net/lengxiao1993/article/details/81985399)]
+
+---
+# 学生t分布与正态分布
+
+一般当自由度M达到25或者更大时，t分布与正态分布已经非常接近了。<sup>*</sup>
+
+```{r echo=F, fig.align='center', fig.height=5}
+curve(dnorm(x), 
+      xlim = c(-4, 4), 
+      xlab = "x", 
+      lty = 2, 
+      ylab = "Density", 
+      main = "Densities of t Distributions")
+
+# plot the t density for M=2
+curve(dt(x, df = 2), 
+      xlim = c(-4, 4), 
+      col = 2, 
+      add = T)
+
+# plot the t density for M=4
+curve(dt(x, df = 4), 
+      xlim = c(-4, 4), 
+      col = 3, 
+      add = T)
+
+# plot the t density for M=25
+curve(dt(x, df = 25), 
+      xlim = c(-4, 4), 
+      col = 4, 
+      add = T)
+
+# add a legend
+legend("topright", 
+       c("N(0, 1)", "M=2", "M=4", "M=25"), 
+       col = 1:4, 
+       lty = c(2, 1, 1, 1))
+```
+
+.footnote[[*]
+思考：t分布的厚尾 (fat tail) 特征是如何体现的？]
+
+---
+# F分布
+两个相互独立的卡方分布随机变量W (自由度为m)和V(自由度为n)之比就构成了F随机变量，其分布服从F分布 <sup>*</sup>
+$$\frac{W/m}{V/n} \sim F_{m,n} \ \ \text{with} \ \ W \sim \chi^2_m \ \ , \ \ V \sim \chi^2_n$$
+如果F分布的分母自由度趋向于无穷大，则F分布逼近于卡方分布
+$$W/M \sim F_{M,\infty} \ \ , \ \ W \sim \chi^2_M.$$
+
+至此，我们已经注意到统计学四大分布（正态、学生t、卡方、F）有着紧密的联系。
+
+.footnote[
+[*] F分布由George Snedecor发现，F是为了纪念著名统计学家[Ronald Fisher](http://www.360doc.com/content/19/0516/23/32196507_836204975.shtml)。
+]
+
+---
+# 卡方分布图
+
+.pull-left[
+```{r eval=F}
+# 定义阴影部分范围
+x <- c(2, seq(2, 10, 0.01), 10)
+y <- c(0, df(seq(2, 10, 0.01), 3, 14), 0)
+
+# 绘制F_{3, 14}概率密度图，注意df的使用
+curve(df(x ,3 ,14), 
+      ylim = c(0, 0.8), 
+      xlim = c(0, 10), 
+      ylab = "Density",
+      main = "Density Function")
+
+# 绘制阴影区域
+polygon(x, y, col = "orange")
+```
+
+]
+
+.pull-right[
+```{r echo=F, fig.height=6}
+# 定义阴影部分范围
+x <- c(2, seq(2, 10, 0.01), 10)
+y <- c(0, df(seq(2, 10, 0.01), 3, 14), 0)
+
+# 绘制F_{3, 14}概率密度图，注意df的使用
+curve(df(x ,3 ,14), 
+      ylim = c(0, 0.8), 
+      xlim = c(0, 10), 
+      ylab = "Density",
+      main = "Density Function")
+
+# 绘制阴影区域
+polygon(x, y, col = "orange")
+```
+
+]
+
+.footnote[
+[练习题]：画图说明分母自由度为100的F分布和相应卡方分布的关系。
+]
+
+---
+# 样本均值
+
+Y是随机变量，其观测样本为$$Y_1, Y_2, \cdots,Y_n$$
+
+该样本的平均值称为样本均值$$\overline{Y} = \frac{1}{n} \sum_{i=1}^n Y_i = \frac{1}{n} (Y_1 + Y_2 + \cdots + Y_n).$$
+
+因为样本的随机性，样本均值也是个随机变量，具有分布性质。假设Y的观测是独立同分布的，那么样本均值的前两阶矩，期望和方差是多少？
+
+### 这里的独立同分布假设很重要。
+
+
+.footnote[
+[思考]：独立同分布，independent and identically distributed, 常见的简写是i.i.d。为什么重要？
+]
+
+---
+# 样本均值的期望和方差
+
+$$E(\overline{Y}) = E\left(\frac{1}{n} \sum_{i=1}^n Y_i \right) = \frac{1}{n} E\left(\sum_{i=1}^n Y_i\right) = \frac{1}{n} \sum_{i=1}^n E\left(Y_i\right) = \frac{1}{n} \cdot n \cdot \mu_Y = \mu_Y$$
+$$\begin{align*}
+  \text{Var}(\overline{Y}) =& \text{Var}\left(\frac{1}{n} \sum_{i=1}^n Y_i \right) \\
+  =& \frac{1}{n^2} \sum_{i=1}^n \text{Var}(Y_i) + \frac{1}{n^2} \sum_{i=1}^n \sum_{j=1, j\neq i}^n \text{cov}(Y_i,Y_j) \\
+  =& \frac{\sigma^2_Y}{n} \\
+  =& \sigma_{\overline{Y}}^2.
+\end{align*}$$
+
+应该注意到，样本均值与原样本方差的关系与Y的观测分布无关。那么样本均值的分布是怎样的？
+
+---
+# 样本均值的概率分布
+
+如果Y是正态分布的，那么其样本均值也是正态分布的，并且具有相同的期望和更小的方差$$\overline{Y} \sim \mathcal{N}(\mu_Y, \sigma_Y^2/n)$$
+
+.pull-left[
+```{r eval=F}
+n <- 10
+reps <- 10000
+samples <- replicate(reps, rnorm(n)) # 10 x 10000 sample matrix
+sample.avgs <- colMeans(samples)
+hist(sample.avgs, 
+     ylim = c(0, 1.4), 
+     col = "steelblue" , 
+     freq = F, 
+     breaks = 20)
+
+curve(dnorm(x, sd = 1/sqrt(n)), 
+      col = "red", 
+      lwd = "2", 
+      add = T)
+```
+]
+
+.pull-right[
+```{r echo=F}
+n <- 10
+reps <- 10000
+samples <- replicate(reps, rnorm(n)) # 10 x 10000 sample matrix
+sample.avgs <- colMeans(samples)
+
+hist(sample.avgs, 
+     ylim = c(0, 1.4), 
+     col = "steelblue" , 
+     freq = F, 
+     breaks = 20)
+
+curve(dnorm(x, sd = 1/sqrt(n)), 
+      col = "red", 
+      lwd = "2", 
+      add = T)
+```
+]
+
+---
+# 大数定律
+
+如果样本量足够大，那么样本均值 $\overline{Y}$ 以高概率逼近真实均值 $\mu_Y$
+
+下面模拟验证之：
+
+.pull-left[
+```{r eval=F}
+set.seed(1)
+N <- 30000
+Y <- sample(0:1, N, replace = T)
+S <- cumsum(Y)
+R <- S/(1:N)
+
+# Plot the path.
+plot(R, ylim = c(0.3, 0.7), type = "l", 
+     col = "steelblue", lwd = 2, 
+     xlab = "n", ylab = "R_n",
+     main = "Converging Share of Heads in Repeated Coin Tossing")
+lines(c(0, N), c(0.5, 0.5), 
+      col = "darkred", 
+      lty = 2, lwd = 1)
+```
+
+]
+
+.pull-right[
+```{r echo=F}
+# set seed
+set.seed(1)
+
+# set number of coin tosses and simulate
+N <- 30000
+Y <- sample(0:1, N, replace = T)
+
+# Calculate R_n for 1:N
+S <- cumsum(Y)
+R <- S/(1:N)
+
+# Plot the path.
+plot(R, 
+     ylim = c(0.3, 0.7), 
+     type = "l", 
+     col = "steelblue", 
+     lwd = 2, 
+     xlab = "n", 
+     ylab = "R_n",
+     main = "Converging Share of Heads in Repeated Coin Tossing")
+
+# Add a dashed line for R_n = 0.5
+lines(c(0, N), 
+      c(0.5, 0.5), 
+      col = "darkred", 
+      lty = 2, 
+      lwd = 1)
+```
+]
+
+---
+# 中心极限定理
+加上 $Y_i$ 是i.i.d.的，并且具有固定的均值和有限方差，那么样本方差的极限分布（当样本量无穷大时的分布）是正态分布。也即标准化样本方差服从标准正态分布 
+
+```{r echo=F, fig.height=5, fig.align='center'}
+# subdivide the plot panel into a 2-by-2 array
+par(mfrow = c(2, 2))
+
+# set the number of repetitions and the sample sizes
+reps <- 10000
+sample.sizes <- c(5, 20, 75, 100)
+
+# set seed for reproducibility
+set.seed(123)
+
+# vector of break numbers for histograms
+b <- c(5, 10, 15, 30)
+
+# outer loop (loop over the sample sizes)
+  for (n in sample.sizes) {
+    
+    samplemean <- rep(0, reps) #initialize the vector of sample menas
+    stdsamplemean <- rep(0, reps) #initialize the vector of standardized sample menas
+
+# inner loop (loop over repetitions)   
+    for (i in 1:reps) {
+      x <- rbinom(n, 1, 0.5)
+      samplemean[i] <- mean(x)
+      stdsamplemean[i] <- sqrt(n)*(mean(x) - 0.5)/0.5
+    }
+    
+# plot histogram and overlay the N(0,1) density in every iteration    
+    hist(stdsamplemean, 
+         col = "steelblue", 
+         freq = FALSE, 
+         breaks = 40,
+         xlim = c(-3, 3), 
+         ylim = c(0, 0.8), 
+         xlab = paste("n =", n), 
+         main = "")
+    
+    curve(dnorm(x), 
+          lwd = 2, 
+          col = "darkred", 
+          add = TRUE)
+  } 
+```
+
+.footnote[[课外拓展：[正态分布的前世今生：论剑中心极限定理](正态分布的前世今生 )
+]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
