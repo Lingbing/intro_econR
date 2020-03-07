@@ -1,4 +1,4 @@
-# econR
+# intro_econR
 
 This is the public repository for the first year master course **Introductory Econometrics with R** in JXUFE (http://www.jxufe.edu.cn/) for the 2nd semester of year 2020. 
 
