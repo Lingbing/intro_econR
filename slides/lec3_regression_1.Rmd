@@ -676,14 +676,111 @@ round(cbind(t = mean(t), t.rob = mean(t.rob)), 3)
 ---
 # 高斯-马尔科夫定理
 
+<font color = "red"> [定理]：在满足一些条件下，OLS估计量是最佳线性无偏估计量 (BLUE)。</font>
 
+线性估计量的定义如下：
+$$\overset{\sim}{\beta}_1 = \sum_{i=1}^n a_i Y_i$$
 
+权重 $a_i$ 可以与 $X_i$ 有关，但与 $Y_i$ 无关。如果
 
+$$E(\overset{\sim}{\beta}_1 | X_1, \dots, X_n) = \beta_1$$
 
+则 $\overset{\sim}{\beta}_1$ 是一个无偏的线性估计量。
 
+- 高斯马尔科夫的结论是，在所有这些线性无偏估计量中，OLS估计量的标准误是最小的，也就是最有效的。
 
+- 在这里权重的选取起着决定性的作用，OLS的权重决定了它的最优性。
 
+- 因此高斯马尔科夫定理为OLS的优越性提供了证据。
 
+- 但我们也应该充分认识到这个定理成立的条件，在不能得到满足的情况下，OLS的优越性也无从谈起。
+
+---
+# 模拟实例：BLUE
+.pull-left[
+```{r plot_13, fig.show = 'hide'}
+n <- 100      
+reps <- 1e5
+epsilon <- 0.8
+w <- c(rep((1 + epsilon) / n, n / 2), 
+       rep((1 - epsilon) / n, n / 2))
+ols <- rep(NA, reps)
+weightedestimator <- rep(NA, reps)
+for (i in 1:reps) {
+  y <- rnorm(n)
+  ols[i] <- mean(y)
+  weightedestimator[i] <- crossprod(w, y)
+}
+plot(density(ols), 
+     col = "purple", lwd = 3, 
+     main = "Density of OLS and Weighted Estimator",
+     xlab = "Estimates")
+lines(density(weightedestimator), 
+      col = "steelblue", lwd = 3) 
+legend('topright', c("OLS", "Weighted"), 
+       col = c("purple", "steelblue"), lwd = 3)
+```
+]
+
+.pull-right[
+略微改变一下权重 $w_i = \frac{1 \pm 0.8}{100}$ 不改变估计量线性无偏的性质，但是它的有效应明显低于OLS估计了。
+
+```{r ref.label = 'plot_13', echo=F, fig.height=7}
+```
+]
+
+---
+# 小样本与t统计量
+
+在OLS假设满足，误差项服从正态分布并且没有异方差的条件下，截距和斜率参数的估计量是正态分布的，相关假设检验的统计量在小样本下服从t分布。下图是检验统计量的抽样分布与理论分布对比。（     不是估计量的分布！）
+
+```{r echo=F, fig.align='center', fig.height=6, fig.width=10}
+# initialize two vectors
+beta_0 <- c()
+beta_1 <- c()
+
+# loop sampling / estimation / t statistics
+for (i in 1:10000) {
+  
+  X <- runif(20, 0, 20)
+  Y <- rnorm(n = 20, mean = X)
+  reg <- summary(lm(Y ~ X))
+  beta_0[i] <- (reg$coefficients[1, 1] - 0)/(reg$coefficients[1, 2])
+  beta_1[i] <- (reg$coefficients[2, 1] - 1)/(reg$coefficients[2, 2])
+  
+}
+
+# plot the distributions and compare with t_18 density:
+
+# divide plotting area
+par(mfrow = c(1, 2))
+
+# plot the simulated density of beta_0
+plot(density(beta_0), 
+     lwd = 2 , 
+     main = expression(widehat(beta)[0]), 
+     xlim = c(-4, 4))
+
+# add the t_18 density to the plot
+curve(dt(x, df = 18), 
+      add = T, 
+      col = "red", 
+      lwd = 2, 
+      lty = 2)
+
+# plot the simulated density of beta_1
+plot(density(beta_1), 
+     lwd = 2, 
+     main = expression(widehat(beta)[1]), xlim = c(-4, 4)
+     )
+
+# add the t_18 density to the plot
+curve(dt(x, df = 18), 
+      add = T, 
+      col = "red", 
+      lwd = 2, 
+      lty = 2) 
+```
 
 
 
