@@ -397,8 +397,109 @@ p值接近于0，意味着如果原假设 `\(H_0: \beta_1 = 0\)` 成立，假设
 
 ---
 # p值演示
-书中的代码相当繁琐，建议大家一步一步运行，搞清楚每一步的作用。
+书中的代码较繁琐，建议大家一步一步运行，搞清楚每一步的作用。
 &lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-13-1.png" width="792" style="display: block; margin: auto;" /&gt;
+
+---
+# 斜率参数估计的置信区间
+斜率参数 `\(\beta_i\)` 的95%置信水平的置信区间为
+
+`$$\text{CI}_{0.95}^{\beta_i} = \left[ \hat{\beta}_i - 1.96 \times SE(\hat{\beta}_i) \, , \, \hat{\beta}_i + 1.96 \times SE(\hat{\beta}_i) \right]$$`
+
+在R中，用`lm`建立线性模型之后，可以通过`confint`函数轻松获得置信区间：
+
+```r
+confint(linear_model)
+&gt;                 2.5 %     97.5 %
+&gt; (Intercept) 680.32312 717.542775
+&gt; STR          -3.22298  -1.336636
+```
+
+看其与理论值是否相等
+
+```r
+lm_summ &lt;- summary(linear_model)
+c("lower" = lm_summ$coef[2,1] - qt(0.975, df = lm_summ$df[2]) * lm_summ$coef[2, 2],
+  "upper" = lm_summ$coef[2,1] + qt(0.975, df = lm_summ$df[2]) * lm_summ$coef[2, 2])
+&gt;     lower     upper 
+&gt; -3.222980 -1.336636
+```
+
+---
+# 置信区间的频率和概率解释
+在频率学派看来，用上述公式计算出的置信区间只能用频率解释。因为每一个区间要么包含了真值，要么不包含真值。下图红色的置信区间即为不包含真值5的置信区间。可以看出如果抽样100次，有5个左右的置信区间如此。
+.pull-left[
+
+```r
+lower &lt;- numeric(10000); upper &lt;- numeric(10000)
+for(i in 1:10000) {
+  Y &lt;- rnorm(100, mean = 5, sd = 5)
+  lower[i] &lt;- mean(Y) - 1.96 * 5 / 10
+  upper[i] &lt;- mean(Y) + 1.96 * 5 / 10
+}
+CIs &lt;- cbind(lower, upper)
+ID &lt;- which(!(CIs[1:100, 1] &lt;= 5 &amp; 5 &lt;= CIs[1:100, 2]))
+plot(0, xlim = c(3, 7), ylim = c(1, 100), 
+     ylab = "Sample", xlab = expression(mu), 
+     main = "Confidence Intervals")
+colors &lt;- rep(gray(0.6), 100)
+colors[ID] &lt;- "red"
+abline(v = 5, lty = 2)
+for(j in 1:100) {
+  lines(c(CIs[j, 1], CIs[j, 2]), 
+        c(j, j), col = colors[j], 
+        lwd = 2)
+}
+```
+]
+
+.pull-right[
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
+]
+
+---
+# X 为二值变量
+如下回归中 `\(D_i\)` 是一个二值变量 (binary variable)，也称为哑变量 (dummy variable)，它只可以有两种取值。
+$$
+Y_i = \beta_0 + \beta_1 D_i + u_i 
+$$
+如果STR &lt; 20, `\(D_i = 1\)`，否则 `\(D_i = 0\)`。那么回归模型变为:
+`$$TestScore_i = \beta_0 + \beta_1 D_i + u_i$$`
+.pull-left[
+
+```r
+CASchools$D &lt;- CASchools$STR &lt; 20
+plot(CASchools$D, CASchools$score, 
+     pch = 20, cex = 0.5,                               
+     col = "Steelblue",                       
+     xlab = expression(D[i]),                
+     ylab = "Test Score",
+     main = "Dummy Regression")
+```
+]
+
+.pull-right[
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-17-1.png" width="504" /&gt;
+]
+
+---
+# 参数的解释
+在X变量是二值变量时，不能再将其参数系数解释为斜率。因为在X的取值空间上，只有两个点0和1是非空的。
+- `\(E(Y_i | D_i = 0) = \beta_0\)`: `\(\beta_0\)` 解释为当STR小于20时的测试分数的期望值。
+- `\(E(Y_i | D_i = 1) = \beta_0 + \beta_1\)` 为两个不同小组测试分数期望值的差距。
+- 也就是STR小于20的学生测试分数的期望值比STR大于等于20的学生测试分数的期望值大 `\(\beta_1\)` (如果 `\(\beta_1 &gt; 0\)`)
+
+```r
+dummy_model &lt;- lm(score ~ D, data = CASchools)
+coef(summary(dummy_model))
+&gt;               Estimate Std. Error    t value     Pr(&gt;|t|)
+&gt; (Intercept) 650.076798   1.393023 466.666105 0.0000000000
+&gt; DTRUE         7.169435   1.846648   3.882405 0.0001201701
+```
+$$
+\hat{\beta_0} = 650.1, \hat{\beta_1} = 7.17
+$$
+&lt;font color = #990000&gt; [问题]：请给出两个参数估计值的现实解释，并提取两个参数95%置信区间。&lt;/font&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
