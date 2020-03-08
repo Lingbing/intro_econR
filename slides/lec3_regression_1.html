@@ -44,7 +44,7 @@ abline(a = 713, b = -3)
 
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-1-1.png" width="504" /&gt;
 ]
 
 
@@ -81,7 +81,7 @@ plot(score ~ STR,
 &gt; [1] -0.2263627
 ```
 
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-3-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;
 ]
 
 ---
@@ -123,7 +123,7 @@ abline(linear_model)
 ]
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-4-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-3-1.png" width="504" /&gt;
 ]
 
 一个自然的问题是：如何评估回归效果的好坏。什么是回归的效果？
@@ -234,7 +234,7 @@ mean(resid(mod_simple))
 ]
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-6-1.png" width="504" /&gt;
 
 ```
 &gt; [1] 1.023764e-15
@@ -264,7 +264,7 @@ plot(x = Date, y = X, type = "l",
 ]
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-8-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
 ]
 
 
@@ -315,7 +315,7 @@ $$
 
 .pull-right[
 蓝色点为第一部分观测值，其位于X的均值附近，方差较小；黑色点是第二部分观测值，其方差明显更大。
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-8-1.png" width="504" /&gt;
 ]
 
 ---
@@ -358,7 +358,7 @@ abline(lm.set2, col = "steelblue")
 &gt; X           -0.04584703  0.4417761 -0.1037789 0.91808461
 ```
 
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-11-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-10-1.png" width="504" /&gt;
 ]
 
 ---
@@ -398,7 +398,7 @@ p值接近于0，意味着如果原假设 `\(H_0: \beta_1 = 0\)` 成立，假设
 ---
 # p值演示
 书中的代码较繁琐，建议大家一步一步运行，搞清楚每一步的作用。
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-13-1.png" width="792" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-12-1.png" width="792" style="display: block; margin: auto;" /&gt;
 
 ---
 # 斜率参数估计的置信区间
@@ -454,7 +454,7 @@ for(j in 1:100) {
 ]
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-15-1.png" width="504" /&gt;
 ]
 
 ---
@@ -479,7 +479,7 @@ plot(CASchools$D, CASchools$score,
 ]
 
 .pull-right[
-&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-17-1.png" width="504" /&gt;
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
 ]
 
 ---
@@ -500,6 +500,232 @@ $$
 \hat{\beta_0} = 650.1, \hat{\beta_1} = 7.17
 $$
 &lt;font color = #990000&gt; [问题]：请给出两个参数估计值的现实解释，并提取两个参数95%置信区间。&lt;/font&gt;
+
+---
+# 同方差假设
+回归模型另外一个重要的假设是误差线的条件方差是定值 (homoskedastic)
+$$
+\text{Var}(u_i|X_i=x) = \sigma^2 \ \forall \ i=1,\dots,n.
+$$
+如果该条件方差与X的观测顺序有关，则称为异方差 (heteroskedastic)
+$$
+\text{Var}(u_i|X_i=x) = \sigma_i^2 \ \forall \ i=1,\dots,n.
+$$
+---
+# 模拟异方差现象
+.pull-left[
+
+```r
+library(scales)
+x &lt;- rep(c(10, 15, 20, 25), each = 25)
+e &lt;- c()
+e[1:25] &lt;- rnorm(25, sd = 10)
+e[26:50] &lt;- rnorm(25, sd = 15)
+e[51:75] &lt;- rnorm(25, sd = 20)
+e[76:100] &lt;- rnorm(25, sd = 25)
+y &lt;- 720 - 3.3 * x + e
+mod &lt;- lm(y ~ x)
+plot(x = x, y = y, 
+     main = "An Example of Heteroskedasticity",
+     xlab = "Student-Teacher Ratio",
+     ylab = "Test Score",
+     cex = 0.5, pch = 19, 
+     xlim = c(8, 27), 
+     ylim = c(600, 710))
+abline(mod, col = "darkred")
+boxplot(formula = y ~ x, 
+        add = TRUE, at = c(10, 15, 20, 25), 
+        col = alpha("gray", 0.4), 
+        border = "black")
+```
+]
+
+.pull-right[
+随着观测值X的值变大，Y的方差也在变大，同样可以导致误差项的方差也随着X的增加而增加。
+
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-18-1.png" width="504" /&gt;
+]
+---
+# 真实异方差实例
+.pull-left[
+
+```r
+library(AER)
+data("CPSSWEducation")
+attach(CPSSWEducation)
+labor_model &lt;- lm(earnings ~ education)
+plot(education, 
+     earnings, 
+     ylim = c(0, 150))
+abline(labor_model, 
+       col = "steelblue", 
+       lwd = 2)
+detach(CPSSWEducation)
+confint(labor_model)
+&gt;                 2.5 %    97.5 %
+&gt; (Intercept) -5.015248 -1.253495
+&gt; education    1.330098  1.603753
+```
+]
+
+.pull-right[
+
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-19-1.png" width="504" /&gt;
+
+```
+&gt;                 2.5 %    97.5 %
+&gt; (Intercept) -5.015248 -1.253495
+&gt; education    1.330098  1.603753
+```
+]
+
+---
+# 异方差的后果
+在同方差假设下 (`summary`函数给出的标准误估计):
+`$$\sqrt{ \overset{\sim}{\sigma}^2_{\hat\beta_1} } = \sqrt{ \frac{SER^2}{\sum_{i=1}^n(X_i - \overline{X})^2} } \ \ \text{where} \ \ SER=\frac{1}{n-2} \sum_{i=1}^n \hat u_i^2$$`
+但是在异方差情形，稳健(robust)的标准误估计是 (`sandwich`包中的`vcovHC()`函数提供了很多版本的标准误稳健估计，比如HC0估计 &lt;a name=cite-white1980&gt;&lt;/a&gt;([White, 1980](#bib-white1980)))
+
+`$$SE(\hat{\beta}_1) = \sqrt{ \frac{1}{n} \cdot \frac{ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2 \hat{u}_i^2 }{ \left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2  \right]^2}}$$`
+
+或者HC1估计&lt;a name=cite-mackinnon1985&gt;&lt;/a&gt;([MacKinnon and White, 1985](#bib-mackinnon1985))为
+`$$\begin{align}
+SE(\hat{\beta}_1)_{HC1} = \sqrt{ \frac{1}{n} \cdot \frac{ \frac{1}{n-2} \sum_{i=1}^n (X_i - \overline{X})^2 \hat{u}_i^2 }{ \left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2  \right]^2}}
+\end{align}$$`
+
+---
+利用`vcovHC`获得参数的稳健标准误，利用`lmtest`包里的`coeftest`函数，则可以基于稳健标准误对参数进行稳健的假设检验
+
+```r
+vcov &lt;- vcovHC(linear_model, type = "HC1")
+(robust_se &lt;- sqrt(diag(vcov)))
+&gt; (Intercept)         STR 
+&gt;  10.3643617   0.5194893
+coeftest(linear_model, vcov. = vcov)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) 698.93295   10.36436 67.4362 &lt; 2.2e-16 ***
+&gt; STR          -2.27981    0.51949 -4.3886 1.447e-05 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+与非稳健的结果比较，有何区别？
+
+```r
+coeftest(linear_model)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) 698.93295    9.46749 73.8245 &lt; 2.2e-16 ***
+&gt; STR          -2.27981    0.47983 -4.7513 2.783e-06 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# 异方差模拟实例
+
+.pull-left[
+`$$Y_i = \beta_1 \cdot X_i + u_i \ \ , \ \ u_i \overset{i.i.d.}{\sim} \mathcal{N}(0,0.36 \cdot X_i^2)$$`
+$$
+\beta_1 = 1
+$$
+
+
+```r
+X &lt;- 1:500
+Y &lt;- rnorm(n = 500, mean = X, sd = 0.6 * X)
+reg &lt;- lm(Y ~ X)
+plot(x = X, y = Y, 
+     pch = 19, 
+     col = "steelblue", 
+     cex = 0.8)
+abline(reg, 
+       col = "darkred", 
+       lwd = 1.5)
+```
+]
+
+.pull-right[
+
+&lt;img src="lec3_regression_1_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
+]
+
+---
+# 异方差的后果
+非稳健参数假设检验
+
+```r
+library(car)
+linearHypothesis(reg, hypothesis.matrix = "X = 1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.7318397
+```
+
+稳健的参数估计假设检验
+
+```r
+linearHypothesis(reg, hypothesis.matrix = "X = 1", white.adjust = "hc1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.7527921
+```
+
+使用非稳健的标准误的假设检验更容易犯第一类错误：拒绝一个真实的原假设。
+
+
+---
+# 稳健标准误与I类错误
+
+使用稳健标准误的假设检验犯第一类错误的概率接近5%，
+
+而不使用稳健标准误的假设检验犯I类错误的概率增加到了7.4%。
+
+
+```r
+t &lt;- c()
+t.rob &lt;- c()
+for (i in 1:10000) {
+  X &lt;- 1:1000
+  Y &lt;- rnorm(n = 1000, mean = X, sd = 0.6 * X)
+  reg &lt;- lm(Y ~ X)
+  t[i] &lt;- linearHypothesis(reg, "X = 1")$'Pr(&gt;F)'[2] &lt; 0.05
+  t.rob[i] &lt;- linearHypothesis(reg, "X = 1", white.adjust = "hc1")$'Pr(&gt;F)'[2] &lt; 0.05
+}
+round(cbind(t = mean(t), t.rob = mean(t.rob)), 3)
+&gt;          t t.rob
+&gt; [1,] 0.074 0.053
+```
+
+---
+# 高斯-马尔科夫定理
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+# 参考文献
+
+&lt;a name=bib-mackinnon1985&gt;&lt;/a&gt;[MacKinnon, J. G. and H.
+White](#cite-mackinnon1985) (1985). "Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties".
+In: _Journal of econometrics_ 29.3, pp. 305-325.
+
+&lt;a name=bib-white1980&gt;&lt;/a&gt;[White, H.](#cite-white1980) (1980). "A
+heteroskedasticity-consistent covariance matrix estimator and a direct
+test for heteroskedasticity". In: _Econometrica: journal of the
+Econometric Society_, pp. 817-838.
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

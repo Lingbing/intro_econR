@@ -18,9 +18,12 @@ output:
       highlightLines: true
       countIncrementalSlides: false
 ---
-```{r, echo = FALSE}
+```{r, setup, include=FALSE,echo = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
                       fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
 ```
 
 # 单变量回归
@@ -511,6 +514,167 @@ $$
 $$
 <font color = #990000> [问题]：请给出两个参数估计值的现实解释，并提取两个参数95%置信区间。</font>
 
+---
+# 同方差假设
+回归模型另外一个重要的假设是误差线的条件方差是定值 (homoskedastic)
+$$
+\text{Var}(u_i|X_i=x) = \sigma^2 \ \forall \ i=1,\dots,n.
+$$
+如果该条件方差与X的观测顺序有关，则称为异方差 (heteroskedastic)
+$$
+\text{Var}(u_i|X_i=x) = \sigma_i^2 \ \forall \ i=1,\dots,n.
+$$
+---
+# 模拟异方差现象
+.pull-left[
+```{r plot_10, fig.show = 'hide'}
+library(scales)
+x <- rep(c(10, 15, 20, 25), each = 25)
+e <- c()
+e[1:25] <- rnorm(25, sd = 10)
+e[26:50] <- rnorm(25, sd = 15)
+e[51:75] <- rnorm(25, sd = 20)
+e[76:100] <- rnorm(25, sd = 25)
+y <- 720 - 3.3 * x + e
+mod <- lm(y ~ x)
+plot(x = x, y = y, 
+     main = "An Example of Heteroskedasticity",
+     xlab = "Student-Teacher Ratio",
+     ylab = "Test Score",
+     cex = 0.5, pch = 19, 
+     xlim = c(8, 27), 
+     ylim = c(600, 710))
+abline(mod, col = "darkred")
+boxplot(formula = y ~ x, 
+        add = TRUE, at = c(10, 15, 20, 25), 
+        col = alpha("gray", 0.4), 
+        border = "black")
+```
+]
+
+.pull-right[
+随着观测值X的值变大，Y的方差也在变大，同样可以导致误差项的方差也随着X的增加而增加。
+
+```{r ref.label = 'plot_10', echo=F, fig.height=7}
+```
+]
+---
+# 真实异方差实例
+.pull-left[
+```{r plot_11, fig.show = 'hide'}
+library(AER)
+data("CPSSWEducation")
+attach(CPSSWEducation)
+labor_model <- lm(earnings ~ education)
+plot(education, 
+     earnings, 
+     ylim = c(0, 150))
+abline(labor_model, 
+       col = "steelblue", 
+       lwd = 2)
+detach(CPSSWEducation)
+confint(labor_model)
+```
+]
+
+.pull-right[
+
+```{r ref.label = 'plot_11', echo=F, fig.height=7}
+```
+]
+
+---
+# 异方差的后果
+在同方差假设下 (`summary`函数给出的标准误估计):
+$$\sqrt{ \overset{\sim}{\sigma}^2_{\hat\beta_1} } = \sqrt{ \frac{SER^2}{\sum_{i=1}^n(X_i - \overline{X})^2} } \ \ \text{where} \ \ SER=\frac{1}{n-2} \sum_{i=1}^n \hat u_i^2$$
+但是在异方差情形，稳健(robust)的标准误估计是 (`sandwich`包中的`vcovHC()`函数提供了很多版本的标准误稳健估计，比如HC0估计 `r Citep(bib, "white1980")`)
+
+$$SE(\hat{\beta}_1) = \sqrt{ \frac{1}{n} \cdot \frac{ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2 \hat{u}_i^2 }{ \left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2  \right]^2}}$$
+
+或者HC1估计`r Citep(bib, "mackinnon1985")`为
+$$\begin{align}
+SE(\hat{\beta}_1)_{HC1} = \sqrt{ \frac{1}{n} \cdot \frac{ \frac{1}{n-2} \sum_{i=1}^n (X_i - \overline{X})^2 \hat{u}_i^2 }{ \left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2  \right]^2}}
+\end{align}$$
+
+---
+利用`vcovHC`获得参数的稳健标准误，利用`lmtest`包里的`coeftest`函数，则可以基于稳健标准误对参数进行稳健的假设检验
+```{r}
+vcov <- vcovHC(linear_model, type = "HC1")
+(robust_se <- sqrt(diag(vcov)))
+coeftest(linear_model, vcov. = vcov)
+```
+与非稳健的结果比较，有何区别？
+```{r}
+coeftest(linear_model)
+```
+
+---
+# 异方差模拟实例
+
+.pull-left[
+$$Y_i = \beta_1 \cdot X_i + u_i \ \ , \ \ u_i \overset{i.i.d.}{\sim} \mathcal{N}(0,0.36 \cdot X_i^2)$$
+$$
+\beta_1 = 1
+$$
+
+```{r plot_12, fig.show = 'hide'}
+X <- 1:500
+Y <- rnorm(n = 500, mean = X, sd = 0.6 * X)
+reg <- lm(Y ~ X)
+plot(x = X, y = Y, 
+     pch = 19, 
+     col = "steelblue", 
+     cex = 0.8)
+abline(reg, 
+       col = "darkred", 
+       lwd = 1.5)
+```
+]
+
+.pull-right[
+
+```{r ref.label = 'plot_12', echo=F, fig.height=7}
+```
+]
+
+---
+# 异方差的后果
+非稳健参数假设检验
+```{r}
+library(car)
+linearHypothesis(reg, hypothesis.matrix = "X = 1")$`Pr(>F)`[2]
+```
+
+稳健的参数估计假设检验
+```{r}
+linearHypothesis(reg, hypothesis.matrix = "X = 1", white.adjust = "hc1")$`Pr(>F)`[2]
+```
+
+使用非稳健的标准误的假设检验更容易犯第一类错误：拒绝一个真实的原假设。
+
+
+---
+# 稳健标准误与I类错误
+
+使用稳健标准误的假设检验犯第一类错误的概率接近5%，
+
+而不使用稳健标准误的假设检验犯I类错误的概率增加到了7.4%。
+
+```{r}
+t <- c()
+t.rob <- c()
+for (i in 1:10000) {
+  X <- 1:1000
+  Y <- rnorm(n = 1000, mean = X, sd = 0.6 * X)
+  reg <- lm(Y ~ X)
+  t[i] <- linearHypothesis(reg, "X = 1")$'Pr(>F)'[2] < 0.05
+  t.rob[i] <- linearHypothesis(reg, "X = 1", white.adjust = "hc1")$'Pr(>F)'[2] < 0.05
+}
+round(cbind(t = mean(t), t.rob = mean(t.rob)), 3)
+```
+
+---
+# 高斯-马尔科夫定理
 
 
 
@@ -518,3 +682,18 @@ $$
 
 
 
+
+
+
+
+
+
+
+
+
+---
+# 参考文献
+
+```{r, results='asis', echo=FALSE}
+PrintBibliography(bib)
+```
