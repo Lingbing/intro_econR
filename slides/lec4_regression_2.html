@@ -97,6 +97,387 @@ summary(mult.mod)$coef
 # 3D散点图与回归平面
 
 &lt;iframe src="3dreg.html" width="120%" height="90%" frameBorder="0"&gt;&lt;/iframe&gt;
+
+---
+# 多元回归的拟合优度
+
+多元回归的拟合优度同简单回归一样，我们多采用SER，R方和调整的R方。其中最后一个是多元回归特有的。简单回归不需要调整R方。
+`$$SER = s_{\hat u} = \sqrt{s_{\hat u}^2}, s_{\hat u}^2 = \frac{1}{n-k-1} \, SSR$$`
+k是变量X的个数。调整R方
+`$$\bar{R}^2 = 1-\frac{n-1}{n-k-1} \, \frac{SSR}{TSS}.$$`
+对R方进行调整的主要原因是，非调整的R方会随着X变量个数的增加而无谓的增加。调整R方可以适度的惩罚变量的个数，得到更为稳健的拟合优度。从调整R方来看，加了一个变量的线性模型比之前的单变量回归解释力度更强。
+
+
+```r
+summary(mult.mod)[c("r.squared", "adj.r.squared")]
+&gt; $r.squared
+&gt; [1] 0.4264315
+&gt; 
+&gt; $adj.r.squared
+&gt; [1] 0.4236805
+```
+
+---
+# 多元回归假设
+简单回归中，我们的三个假设为独立同分布假设，条件均值为0假设，以及没有异常值假设。在多元回归中，我们还假设不存在严重的多重共线性。总结来说：
+1. `\((X_{1i}, X_{2i}, \dots, X_{ki}, Y_i) \ , \ i=1,\dots,n\)` 是独立同分布的样本。
+2. `\(E(u_i\vert X_{1i}, X_{2i}, \dots, X_{ki}) = 0.\)`。
+3. 没有显著的异常值，也就是X和Y具有有限的四阶矩。
+4. 没有严重的多重共线性。
+
+多重共线性的发生场景是：
+- 某两个变量的相关性非常强，
+- 或者某个变量是另外几个变量的线性组合，后者的情形称为完全多重共线性 (perfect multicollinearity)。
+
+### 多重共线性的主要后果是：OLS估计的结果不再可信！
+
+---
+# 多重共线性实例（1)
+
+```r
+CASchools$FracEL &lt;- CASchools$english / 100
+mult.mod &lt;- lm(score ~ STR + english + FracEL, data = CASchools) 
+summary(mult.mod)
+&gt; 
+&gt; Call:
+&gt; lm(formula = score ~ STR + english + FracEL, data = CASchools)
+&gt; 
+&gt; Residuals:
+&gt;     Min      1Q  Median      3Q     Max 
+&gt; -48.845 -10.240  -0.308   9.815  43.461 
+&gt; 
+&gt; Coefficients: (1 not defined because of singularities)
+&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept) 686.03224    7.41131  92.566  &lt; 2e-16 ***
+&gt; STR          -1.10130    0.38028  -2.896  0.00398 ** 
+&gt; english      -0.64978    0.03934 -16.516  &lt; 2e-16 ***
+&gt; FracEL             NA         NA      NA       NA    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; 
+&gt; Residual standard error: 14.46 on 417 degrees of freedom
+&gt; Multiple R-squared:  0.4264,	Adjusted R-squared:  0.4237 
+&gt; F-statistic:   155 on 2 and 417 DF,  p-value: &lt; 2.2e-16
+```
+
+---
+# 多重共线性实例（2)
+
+```r
+CASchools$NS &lt;- ifelse(CASchools$STR &lt; 12, 0, 1)
+mult.mod &lt;- lm(score ~ computer + english + NS, data = CASchools)
+summary(mult.mod)
+&gt; 
+&gt; Call:
+&gt; lm(formula = score ~ computer + english + NS, data = CASchools)
+&gt; 
+&gt; Residuals:
+&gt;     Min      1Q  Median      3Q     Max 
+&gt; -49.492  -9.976  -0.778   8.761  43.798 
+&gt; 
+&gt; Coefficients: (1 not defined because of singularities)
+&gt;               Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept) 663.704837   0.984259 674.319  &lt; 2e-16 ***
+&gt; computer      0.005374   0.001670   3.218  0.00139 ** 
+&gt; english      -0.708947   0.040303 -17.591  &lt; 2e-16 ***
+&gt; NS                  NA         NA      NA       NA    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; 
+&gt; Residual standard error: 14.43 on 417 degrees of freedom
+&gt; Multiple R-squared:  0.4291,	Adjusted R-squared:  0.4263 
+&gt; F-statistic: 156.7 on 2 and 417 DF,  p-value: &lt; 2.2e-16
+```
+
+
+
+---
+# 哑变量陷阱
+可以根据学区所在的区域设定如下哑变量:
+$$
+`\begin{align*}
+  North_i =&amp; 
+  \begin{cases}
+    1 \ \ \text{if located in the north} \\
+    0 \ \ \text{otherwise}
+  \end{cases} \\
+    West_i =&amp; 
+  \begin{cases}
+    1 \ \ \text{if located in the west} \\
+    0 \ \ \text{otherwise}
+  \end{cases} \\
+    South_i =&amp; 
+  \begin{cases}
+    1 \ \ \text{if located in the south} \\
+    0 \ \ \text{otherwise}
+  \end{cases} \\
+    East_i =&amp; 
+  \begin{cases}
+    1 \ \ \text{if located in the east} \\
+    0 \ \ \text{otherwise}.
+  \end{cases}
+\end{align*}`
+$$
+如果将四个哑变量放在一个回归模型中作为四个新增的X变量，
+$$
+TestScore = \beta_0 + \beta_1 \times STR + \beta_2 \times english + \beta_3 \times North_i + \beta_4 \times West_i + \beta_5 \times South_i + \beta_6 \times East_i + u_i \tag{6.8}
+$$
+由于$$North_i + West_i + South_i + East_i = 1.$$
+这四个变量将引起完全多重共线性问题。
+
+---
+# 哑变量陷阱 （2）
+
+.pull-left[
+**如果回归方程中有截距项**，那么
+$$
+`\begin{align}
+  intercept = \, &amp; \lambda_1 \cdot (North + West + South + East) \\
+  \begin{pmatrix} 1 \\ \vdots \\ 1\end{pmatrix} = \, &amp; \lambda_1 \cdot \begin{pmatrix} 1 \\ \vdots \\ 1\end{pmatrix} \\   \Leftrightarrow \, &amp; \lambda_1 = 1
+\end{align}`
+$$
+下面模拟一个direction变量，并用R建模。可以发现，此处R自动识别出有哑变量陷阱，在实际使用X时，只使用了三个变量，而不是全部的四个方向哑变量。
+
+
+```r
+CASchools$direction &lt;- sample(c("West", "North", "South", "East"), 
+                              420, 
+                              replace = T)
+mult.mod &lt;- lm(score ~ STR + english + direction, data = CASchools)
+
+summary(mult.mod)
+```
+]
+
+.pull-right[
+
+
+```
+&gt; 
+&gt; Call:
+&gt; lm(formula = score ~ STR + english + direction, data = CASchools)
+&gt; 
+&gt; Residuals:
+&gt;     Min      1Q  Median      3Q     Max 
+&gt; -46.690 -10.410  -0.124  10.312  44.876 
+&gt; 
+&gt; Coefficients:
+&gt;                 Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)    689.24838    7.35896  93.661  &lt; 2e-16 ***
+&gt; STR             -1.02838    0.37570  -2.737 0.006462 ** 
+&gt; english         -0.64533    0.03885 -16.610  &lt; 2e-16 ***
+*&gt; directionNorth  -5.36331    2.07479  -2.585 0.010079 *  
+*&gt; directionSouth  -6.98699    1.96333  -3.559 0.000416 ***
+*&gt; directionWest   -5.95448    1.96705  -3.027 0.002623 ** 
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; 
+&gt; Residual standard error: 14.27 on 414 degrees of freedom
+&gt; Multiple R-squared:  0.446,	Adjusted R-squared:  0.4393 
+&gt; F-statistic: 66.66 on 5 and 414 DF,  p-value: &lt; 2.2e-16
+```
+]
+
+---
+# 不完全多重共线性
+在处理多重共线性时，存在一个*度*的问题。因为X变量之间存在一定程度的相关关系使我们使用多变量回归的主要原因。
+
+如果X变量之间完全不相关，那么我们完全可以对每一个X变量，建立跟Y单独的单变量简单回归。
+
+假设我们有回归模型: `$$Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + u_i$$`
+则
+`$$\sigma^2_{\hat\beta_1} = \frac{1}{n} \left( \frac{1}{1-\rho^2_{X_1,X_2}} \right) \frac{\sigma^2_u}{\sigma^2_{X_1}}$$`
+- 如果 `\(\rho_{X_1,X_2}=0\)`，那么在回归方程中加入 `\(X_2\)` 对 `\(\hat{\beta_1}\)` 估计的有效性没有影响。
+- 如果相关系数越大， `\(\hat{\beta_1}\)` 估计的有效性越弱。
+- 增加样本量 `\(n\)` 有助于提高估计的有效性。
+
+---
+# 偏差-方差平衡
+### 在多重回归中，增加一个额外的解释变量，将使得已有变量估计的有效性降低，也就是估计标准误增加。这叫做 variance inflation。
+
+### 但是确实有用的解释变量不加入模型，又可能导致可能的忽略变量偏误 (OVB) 问题。
+
+### 因此，是否加入某些解释变量，这里面有一个平衡的问题，在统计学习中这通常叫做*偏差-方差平衡 (bias-variance trade-off)*。
+
+### 因此不加入有用的X会导致 (bias) 偏差，而加入则增加了 (variance) 方差
+
+---
+# 偏差-方差平衡：模拟实例
+
+```r
+library(MASS)
+library(mvtnorm)
+n &lt;- 50
+coefs1 &lt;- cbind("hat_beta_1" = numeric(10000), "hat_beta_2" = numeric(10000))
+coefs2 &lt;- coefs1
+set.seed(1)
+for (i in 1:10000) {
+  X &lt;- rmvnorm(n, c(50, 100), sigma = cbind(c(10, 2.5), c(2.5, 10)))
+  u &lt;- rnorm(n, sd = 5)
+  Y &lt;- 5 + 2.5 * X[, 1] + 3 * X[, 2] + u
+  coefs1[i, ] &lt;- lm(Y ~ X[, 1] + X[, 2])$coefficients[-1]
+  X &lt;- rmvnorm(n, c(50, 100), sigma = cbind(c(10, 8.5), c(8.5, 10)))
+  Y &lt;- 5 + 2.5 * X[, 1] + 3 * X[, 2] + u
+  coefs2[i, ] &lt;- lm(Y ~ X[, 1] + X[, 2])$coefficients[-1]
+}
+diag(var(coefs1))
+&gt; hat_beta_1 hat_beta_2 
+&gt; 0.05674375 0.05712459
+diag(var(coefs2))
+&gt; hat_beta_1 hat_beta_2 
+&gt;  0.1904949  0.1909056
+```
+
+---
+# 多元回归系数的抽样分布
+在OLS假设得到满足的条件下，多元回归的系数是服从联合正态分布的。
+下面用一个模拟来验证。模拟步骤为：
+1. 从如下回归方程中生成100000组样本量为50的数据样本。
+`$$Y_i = 5 + 2.5 \cdot X_{1i} + 3 \cdot X_{2i} + u_i, u_i \sim \mathcal{N}(0,5)$$`
+其中X变量的关系为
+`$$X_i = (X_{1i}, X_{2i}) \sim \mathcal{N} \left[\begin{pmatrix} 0 \\ 0  \end{pmatrix}, \begin{pmatrix} 10 &amp; 2.5 \\ 2.5 &amp; 10 \end{pmatrix} \right]$$`
+2. 对10万组数据，每一组都拟合如下模型并估计参数 `\(\hat{\beta_1},\hat{\beta_2}\)`:
+
+`$$Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + u_i$$`
+3. 使用`kde2d()` 函数计算 `\((\hat{\beta_1},\hat{\beta_2})\)`联合分布的密度估计。
+
+---
+# 联合分布模拟
+.pull-left[
+
+```r
+library(MASS)
+library(mvtnorm)
+n &lt;- 50
+coefs &lt;- cbind("hat_beta_1" = numeric(10000), "hat_beta_2" = numeric(10000))
+set.seed(1)
+for (i in 1:10000) {
+  X &lt;- rmvnorm(n, c(50, 100), sigma = cbind(c(10, 2.5), c(2.5, 10)))
+  u &lt;- rnorm(n, sd = 5)
+  Y &lt;- 5 + 2.5 * X[, 1] + 3 * X[, 2] + u
+  coefs[i,] &lt;- lm(Y ~ X[, 1] + X[, 2])$coefficients[-1]
+  
+}
+kde &lt;- kde2d(coefs[, 1], coefs[, 2])
+persp(kde, 
+      theta = 310, 
+      phi = 30, 
+      xlab = "beta_1", 
+      ylab = "beta_2", 
+      zlab = "Est. Density")
+```
+
+&lt;img src="lec4_regression_2_files/figure-html/plot_2-1.png" width="504" /&gt;
+]
+
+.pull-right[
+
+&lt;img src="lec4_regression_2_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+]
+
+---
+# 联合分布3D图
+&lt;iframe src="3dreg_joint_dist.html" width="100%" height="80%" frameBorder="0"&gt;&lt;/iframe&gt;
+
+---
+# 回归系数估计相关
+两个X变量的系数估计是相关的:
+
+
+```r
+cor(coefs[, 1], coefs[, 2])
+&gt; [1] -0.2503028
+cor(X[, 1], X[, 2])
+&gt; [1] 0.4082656
+```
+
+`\(\hat{\beta_1}\)` 和 `\(\hat{\beta_2}\)` 的相关性源于两个自变量 `\(X_1\)` 和 `\(X_2\)` 的相关性。
+
+`\(X_1\)` 和 `\(X_2\)` 的正相关性将导致 `\(\hat{\beta_1}\)` 和 `\(\hat{\beta_2}\)` 的相关性为负。[见教材6.2节附录]
+
+---
+# 多元回归系数估计假设检验
+
+```r
+model &lt;- lm(score ~ STR + english, data = CASchools)
+coeftest(model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;               Estimate Std. Error  t value Pr(&gt;|t|)    
+&gt; (Intercept) 686.032245   8.728225  78.5993  &lt; 2e-16 ***
+&gt; STR          -1.101296   0.432847  -2.5443  0.01131 *  
+&gt; english      -0.649777   0.031032 -20.9391  &lt; 2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# 系数估计置信区间
+
+```r
+model &lt;- lm(score ~ STR + english, data = CASchools)
+confint(model)
+&gt;                   2.5 %      97.5 %
+&gt; (Intercept) 671.4640580 700.6004311
+&gt; STR          -1.8487969  -0.3537944
+&gt; english      -0.7271113  -0.5724424
+```
+以上非稳健的置信区间估计，以下是
+
+```r
+rob_se &lt;- diag(vcovHC(model, type = "HC1"))^0.5
+rbind("lower" = coef(model) - qnorm(0.975) * rob_se,
+      "upper" = coef(model) + qnorm(0.975) * rob_se)
+&gt;       (Intercept)        STR    english
+&gt; lower    668.9252 -1.9496606 -0.7105980
+&gt; upper    703.1393 -0.2529307 -0.5889557
+```
+
+---
+# 增加X变量的可能后果
+
+估计以下模型，发现原先显著的size的系数估计，此时不再显著。
+
+`$$TestScore = \beta_0 + \beta_1 \times STR + \beta_2 \times english + \beta_3 \times expenditure + u$$`
+
+```r
+CASchools$expenditure &lt;- CASchools$expenditure/1000
+model &lt;- lm(score ~ STR + english + expenditure, data = CASchools)
+coeftest(model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;               Estimate Std. Error  t value Pr(&gt;|t|)    
+&gt; (Intercept) 649.577947  15.458344  42.0212  &lt; 2e-16 ***
+&gt; STR          -0.286399   0.482073  -0.5941  0.55277    
+&gt; english      -0.656023   0.031784 -20.6398  &lt; 2e-16 ***
+&gt; expenditure   3.867901   1.580722   2.4469  0.01482 *  
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+为什么？
+
+```r
+cor(CASchools$STR, CASchools$expenditure)
+&gt; [1] -0.6199822
+```
+
+**不完全多重共线性的后果**
+
+当我们向多元回归模型中添加解释变量时，可能会改变已有变量的显著性（从显著到不显著）。
+
+---
+# 联合检验与F统计量
+上述估计模型为:
+$$
+\widehat{TestScore} = \underset{(15.21)}{649.58} -\underset{(0.48)}{0.29} \times size - \underset{(0.04)}{0.66} \times english + \underset{(1.41)}{3.87} \times expenditure.
+$$
+在多元回归中，对单个系数估计我们一般采用t检验。但如果我们想要检验size和expenditure是否同时为0，该使用什么检验呢？[教材7.2节]
+
+使用如下的F统计量
+`$$F = \frac{(SSR_{\text{restricted}} - SSR_{\text{unrestricted}})/q}{SSR_{\text{unrestricted}} / (n-k-1)}$$`
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

@@ -77,3 +77,23 @@ fig <- plot_ly() %>%
     )
 htmlwidgets::saveWidget(fig
                         ,paste0("3dreg.html"))
+
+fig2 <- plot_ly(x = kde$x, y = kde$y, z = kde$z) %>% add_surface(
+    contours = list(
+        z = list(
+            show=TRUE,
+            usecolormap=TRUE,
+            highlightcolor="#ff0000",
+            project=list(z=TRUE)
+        )
+    )
+)
+fig2 <- fig2 %>% layout(
+    scene = list(
+        camera=list(
+            eye = list(x=1.87, y=0.88, z=-0.64)
+        )
+    )
+)
+htmlwidgets::saveWidget(fig2
+                       ,paste0("3dreg_joint_dist.html"))
