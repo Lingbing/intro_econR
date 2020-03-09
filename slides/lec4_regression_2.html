@@ -20,6 +20,83 @@ class: center, middle, inverse, title-slide
 
 ---
 
+
+
+# 忽略变量偏差
+在单变量回归中，我们假设只有一个变量X解释Y，并且我们有个很强的假设认为误差项与X变量不相关。
+
+如果有其他重要的变量可以解释Y，而我们没有放在X中，那它们对于Y的影响就进入了误差项。
+
+如果这些被忽略的变量进一步跟X有关系，那么我们第一步的假设就不满足。这就称为忽略变量偏差 (omitted variable bias)。需要满足两个条件
+
+1. X与这个忽略变量相关
+
+2. 这个忽略变量可以影响Y
+
+在这种情况下得到的估计值就是有偏差的
+`$$\hat{\beta_1} \xrightarrow[]{p} \beta_1 + \rho_{Xu} \frac{\sigma_u}{\sigma_X}$$`
+
+这样的偏差是不能通过增大样本量来解决的 `\(\hat{\beta_1}\)`是一个有偏和不一致的估计量，即便随着样本量的增加，它的偏差也是系统性和无法纠正的。
+
+---
+# OVB 实例
+在班级规模对学生成绩的影响的例子中，我们可能忽略了一个变量：学校区域内英语学习者的比例。因为如果一个学生仍然在学习英语，那么相比母语是英语的其他学生来说，它的课程成绩可能更低。同时，英语学习者比例高的区域，其学校班级的规模也可能较大。因此，这个变量可能符合上面的两个条件。
+`$$TestScore = \beta_0 + \beta_1 \times STR + \beta_2 \times PctEL, \rho_{STR,PctEL}\ne 0$$`
+
+```r
+# load the AER package
+library(AER)
+data(CASchools)   
+CASchools$STR &lt;- CASchools$students/CASchools$teachers       
+CASchools$score &lt;- (CASchools$read + CASchools$math)/2
+cor(CASchools$STR, CASchools$score)
+&gt; [1] -0.2263627
+cor(CASchools$STR, CASchools$english)
+&gt; [1] 0.1876424
+```
+
+---
+# OVB 与多变量回归
+
+`\(\widehat{\rho}_{STR, Testscore} = -0.2264\)`，因此OVB可能导致 `\(\hat\beta_1\)` 被低估。
+
+```r
+# estimate both regression models
+mod &lt;- lm(score ~ STR, data = CASchools) 
+mult.mod &lt;- lm(score ~ STR + english, data = CASchools)
+coef(summary(mod))
+&gt;               Estimate Std. Error   t value      Pr(&gt;|t|)
+&gt; (Intercept) 698.932949  9.4674911 73.824516 6.569846e-242
+*&gt; STR          -2.279808  0.4798255 -4.751327  2.783308e-06
+coef(summary(mult.mod))
+&gt;                Estimate Std. Error    t value      Pr(&gt;|t|)
+&gt; (Intercept) 686.0322445 7.41131160  92.565565 3.871327e-280
+*&gt; STR          -1.1012956 0.38027827  -2.896026  3.978059e-03
+&gt; english      -0.6497768 0.03934254 -16.515882  1.657448e-47
+```
+
+与理论一致的，多变量回归告诉我们，在单变量回归中发现的班级规模对于成绩的单位负影响程度被高估了 (2.28降低到1.1)。
+
+---
+# 多变量回归
+相比于单变量回归中Y被单一变量解释，多变量回归表示Y可以被多个X的线性组合所表示: 
+`$$Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + \beta_3 X_{3i} + \dots + \beta_k X_{ki} + u_i \ \ , \ \ i=1,\dots,n.$$`
+参数的估计法依然可以采用OLS。
+
+```r
+summary(mult.mod)$coef
+&gt;                Estimate Std. Error    t value      Pr(&gt;|t|)
+&gt; (Intercept) 686.0322445 7.41131160  92.565565 3.871327e-280
+&gt; STR          -1.1012956 0.38027827  -2.896026  3.978059e-03
+&gt; english      -0.6497768 0.03934254 -16.515882  1.657448e-47
+```
+
+`$$\widehat{TestScore} = 686.03 - 1.10 \times STR - 0.65 \times PctEL$$`
+
+---
+# 3D散点图与回归平面
+
+&lt;iframe src="3dreg.html" width="120%" height="90%" frameBorder="0"&gt;&lt;/iframe&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
