@@ -17,6 +17,7 @@ output:
       highlightStyle: github
       highlightLines: true
       countIncrementalSlides: false
+      ratio: "16:9"
 ---
 ```{r, setup, include=FALSE,echo = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
@@ -286,7 +287,7 @@ persp(kde,
 
 ---
 # 联合分布3D图
-<iframe src="3dreg_joint_dist.html" width="100%" height="80%" frameBorder="0"></iframe>
+<iframe src="3dreg_joint_dist.html" width="100%" height="90%" frameBorder="0"></iframe>
 
 ---
 # 回归系数估计相关
@@ -346,9 +347,175 @@ cor(CASchools$STR, CASchools$expenditure)
 # 联合检验与F统计量
 上述估计模型为:
 $$
-\widehat{TestScore} = \underset{(15.21)}{649.58} -\underset{(0.48)}{0.29} \times size - \underset{(0.04)}{0.66} \times english + \underset{(1.41)}{3.87} \times expenditure.
+\widehat{TestScore} = \underset{(15.21)}{649.58} -\underset{(0.48)}{0.29} \times STR - \underset{(0.04)}{0.66} \times english + \underset{(1.41)}{3.87} \times expenditure.
 $$
 在多元回归中，对单个系数估计我们一般采用t检验。但如果我们想要检验size和expenditure是否同时为0，该使用什么检验呢？[教材7.2节]
 
 使用如下的F统计量
 $$F = \frac{(SSR_{\text{restricted}} - SSR_{\text{unrestricted}})/q}{SSR_{\text{unrestricted}} / (n-k-1)}$$
+$SSR_{\text{restricted}}$ 是限制模型的离差平方和, $SSR_{\text{rerestricted}}$ 是非限制模型的离差平方和, $q$是限制参数的个数, $k$ 是全模型（非限制）参数个数。
+
+F统计量的原理？
+
+---
+# 联合检验的R操作
+```{r}
+model <- lm(score ~ STR + english + expenditure, data = CASchools)
+linearHypothesis(model, c("STR=0", "expenditure=0"))
+```
+
+---
+# 联合检验的R操作：稳健版
+```{r}
+linearHypothesis(model, c("STR=0", "expenditure=0"), white.adjust = "hc1")
+```
+
+---
+# 全局F检验
+对于`lm`的结果，`summary`函数的输出中也包含了一个F检验
+```{r}
+summary(model)$fstatistic
+```
+这个检验称为全局F检验，它的原假设和备择假设为:
+$$
+H_0: \beta_1=0, \ \beta_2 =0, \ \beta_3 =0 \quad \text{vs.} \quad H_1: \beta_j \neq 0 \ \text{for at least one} \ j=1,2,3.
+$$
+---
+# 全局F检验与限制模型F检验等同
+```{r}
+linearHypothesis(model, c("STR=0", "english=0", "expenditure=0"))
+```
+
+---
+# 参数的置信集合
+.pull-left[
+单变量回归中可以给出每个参数估计的置信区间
+
+多元回归中可以给出两个参数估计的置信集合 (confidence set)
+
+表现为一个椭圆 (Ellipse)
+```{r plot_conf_set, fig.show='hide'}
+confidenceEllipse(model, 
+                  fill = T,
+                  lwd = 0,
+                  which.coef = c("STR", "expenditure"),
+                  main = "95% Confidence Set")    
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_conf_set', echo=F, fig.height=7}
+```
+]
+
+---
+# 置信集合稳健版
+.pull-left[
+稳健版的标准误估计一般要大于OLS标准误估计.因此从集合的覆盖面积来看，普通版的置信集合是稳健版的子集。
+```{r plot_conf_robset, fig.show='hide'}
+confidenceEllipse(model, 
+                  fill = T,
+                  lwd = 0,
+                  which.coef = c("STR", "expenditure"),
+                  main = "95% Confidence Sets",
+                  vcov. = vcovHC(model, type = "HC1"),
+                  col = "red")
+                  
+confidenceEllipse(model, 
+                  fill = T,
+                  lwd = 0,
+                  which.coef = c("STR", "expenditure"),
+                  add = T)
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_conf_robset', echo=F, fig.height=7}
+```
+]
+
+---
+# 多元回归的模型设定
+模型设定(model specification) 一般涉及两个问题：
+
+1. 用哪些X变量
+2. 用线性模型还是非线性模型。要不要加入交叉项或者高阶项。
+
+这两个问题依然在OVB范畴中，我们需要权衡的就是偏差和方差的关系。班级规模的回归中我们加入一个参数
+```{r}
+model <- lm(score ~ STR + english + lunch, data = CASchools)
+coeftest(model, vcov. = vcovHC, type = "HC1")
+```
+
+---
+# 模型设定
+估计模型
+$$\widehat{TestScore} = \underset{(5.56)}{700.15} - \underset{(0.27)}{1.00} \times size - \underset{(0.03)}{0.12} \times english - \underset{(0.02)}{0.55} \times lunch.$$
+注意到两点：
+1. 新加入的参数lunch的系数估计是显著的。
+2. 加入该参数之后，我们所关心的size系数的估计没有大幅度的变动，并且仍然保持显著性。
+
+在这种情况下，在模型中保留该新参数lunch是适合的。
+
+---
+# 关于R方与调整R方
+
+无论是R方还是调整R方，它们告诉我们的知识所选取的变量集合能够解释Y方差的比例。它并没有告诉我们
+1.  某个X变量是否显著。
+
+2. 某个X变量是否与Y变量有因果联系。
+
+3. 不存在忽略变量偏误，X变量已经足够
+
+4. 目前所选取的X变量集合是最合适的。
+
+现实中可能存在很多伪回归 (spurious regression)的问题，也就是R方很高的回归，但其实X和Y之间毫无因果联系。
+
+---
+# 伪回归
+.pull-left[
+构造虚拟变量PLS标识城市中停车位的个数，与某学区的收入，消费，班级规模等相关，但与Y无关。
+```{r plot_sup_reg, fig.show='hide'}
+CASchools$PLS <- c(22 * CASchools$income 
+                   - 15 * CASchools$STR 
+                   + 0.2 * CASchools$expenditure
+                   + rnorm(nrow(CASchools), sd = 80) + 3000)
+# plot parking lot space against test score
+plot(CASchools$PLS, 
+     CASchools$score,
+     xlab = "Parking Lot Space",
+     ylab = "Test Score",
+     pch = 20,
+     col = "steelblue")    
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_sup_reg', echo=F, fig.height=7}
+```
+]
+
+---
+# 伪回归 (2)
+增加的模拟变量PLS与Y没有任何联系，但在与Y的回归后，获得了显著的参数估计和较高的R方。
+```{r}
+summary(lm(score ~ PLS, data = CASchools))
+```
+
+---
+# 思考：
+利用以上生成的伪变量PLS，检查以下两段回归代码，你有何观察？
+```{r eval=FALSE}
+model_1 <- lm(score ~ STR + english + lunch+PLS, data = CASchools)
+summary(model_1)
+model_2 <- lm(score ~ STR + english + lunch + PLS + income + expenditure, data = CASchools)
+summary(model_2)
+```
+**提示**：
+1. 新加入的任何变量，要观察其本身的显著性，对其他参数估计显著性的影响，对R方的影响。
+2. 如果新加入一个变量之后，导致原先的显著性格局发生了明显的变化，意味着这个变量有问题。
+3. 多重共线性的问题。
+
+---
+# 相关系数与散点图
+<iframe src="corr_scat.html" width="150%" height="90%" frameBorder="0"></iframe>
