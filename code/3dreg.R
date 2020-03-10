@@ -97,3 +97,9 @@ fig2 <- fig2 %>% layout(
 )
 htmlwidgets::saveWidget(fig2
                        ,paste0("3dreg_joint_dist.html"))
+
+fig3 <- iplotCorr(datacor, reorder = T, 
+          chartOpts=list(cortitle="Correlation matrix",
+                                               scattitle="Scatterplot"))
+htmlwidgets::saveWidget(fig3
+                        ,paste0("corr_scat.html"))
