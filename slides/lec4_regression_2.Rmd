@@ -519,3 +519,37 @@ summary(model_2)
 ---
 # 相关系数与散点图
 <iframe src="corr_scat.html" width="150%" height="90%" frameBorder="0"></iframe>
+
+---
+# 模型比较和展示输出
+我们循序渐进的考虑以下五种模型，每个模型增加一个解释变量
+
+$$\begin{align*}
+  (I) \quad TestScore=& \, \beta_0 + \beta_1 \times size + u, \\
+  (II) \quad TestScore=& \, \beta_0 + \beta_1 \times size + \beta_2 \times english + u, \\
+  (III) \quad TestScore=& \, \beta_0 + \beta_1 \times size + \beta_2 \times english + \beta_3 \times lunch + u, \\
+  (IV) \quad TestScore=& \, \beta_0 + \beta_1 \times size + \beta_2 \times english + \beta_4 \times calworks + u, \\
+  (V) \quad TestScore=& \, \beta_0 + \beta_1 \times size + \beta_2 \times english + \beta_3 \times lunch + \beta_4 \times calworks + u
+\end{align*}$$
+
+主要结论：
+1. 增加控制变量可以将STR的边际效应减半，但是不影响其显著性。
+2. 增加控制变量可以显著提升模型的解释力，R方从0.05增加到0.77。
+3. lunch和calworks不需要同时作为控制变量。前者更应该留在模型中。
+
+---
+```{r echo=F}
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+m1 <- lm(score ~ STR, data = CASchools)
+m2 <- lm(score ~ STR + english, data = CASchools)
+m3 <- lm(score ~ STR + english + lunch, data = CASchools)
+m4 <- lm(score ~ STR + english + calworks, data = CASchools)
+m5 <- lm(score ~ STR + english + lunch + calworks, data = CASchools)
+tab_model(m1, m2, m3, m4, m5, robust = T,
+          vcov.type = "HC1", emph.p = T,
+          show.fstat = T, title = "Regression Outputs",
+          show.ci = F, collapse.se = T, 
+          p.style = "a")
+```
