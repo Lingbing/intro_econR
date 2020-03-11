@@ -1,0 +1,359 @@
+---
+title: "非线性回归"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(AER)
+library(stargazer)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+```
+
+# 多项式回归：二次项
+在CASchools数据的例子中，我们研究学区居民的收入和学生测试成绩的关系。
+由相关系数可知，该对变量的线性相关关系是显著的。
+
+```{r}
+library(AER)                                                     
+data(CASchools)
+CASchools$size <- CASchools$students/CASchools$teachers
+CASchools$score <- (CASchools$read + CASchools$math) / 2   
+cor(CASchools$income, CASchools$score)
+```
+
+下图中我们给出简单回归直线和二次回归的拟合直线：
+
+$$TestScore_i = \beta_0 + \beta_1 \times income_i + \beta_2 \times income_i^2 + u_i,$$
+---
+# 二次项回归
+.pull-left[
+```{r plot_1, fig.show='hide'}
+linear_model<- lm(score ~ income, data = CASchools)
+plot(CASchools$income, CASchools$score,
+     col = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)", 
+     ylab = "Test Score",
+     cex.main = 0.9,
+     main = "Test Score vs. District Income and a Linear OLS Regression Function")
+abline(linear_model, 
+       col = "red", 
+       lwd = 2)
+quadratic_model <- lm(score ~ income + I(income^2), data = CASchools)
+plot(CASchools$income, CASchools$score,
+     col  = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)",
+     ylab = "Test Score",
+     main = "Estimated Linear and Quadratic Regression Functions")
+abline(linear_model, col = "black", lwd = 2)
+order_id <- order(CASchools$income)
+lines(x = CASchools$income[order_id], 
+      y = fitted(quadratic_model)[order_id],
+      col = "red", 
+      lwd = 2) 
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_1', echo=F, fig.height=7}
+```
+]
+
+---
+# 二次项系数估计
+```{r}
+coeftest(quadratic_model, vcov. = vcovHC, type = "HC1")
+```
+
+$$\widehat{TestScore}_i = \underset{(2.90)}{607.3} + \underset{(0.27)}{3.85} \times income_i - \underset{(0.0048)}{0.0423} \times income_i^2.$$
+二次项系数估计为-0.0423，并且在1%的显著性水平下是显著的。
+
+因此用一个**倒U形**来拟合二者的关系更加合适。
+
+---
+# 多项式回归
+
+在二次项回归的基础上，我们可以增加X变量的幂级，建立r阶多项式回归
+$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 X_i^2 + \cdots + \beta_r X_i^r + u_i.$$
+可以用如下命令建立三次式回归
+```{r}
+cubic_model <- lm(score ~ poly(income, degree = 3, raw = TRUE), data = CASchools)
+```
+
+为了检验二次和三次式是否显著，我们可以使用如下联合检验
+$$H_0: \beta_2=0, \ \beta_3=0,\dots,\beta_r=0 \ \ \ \text{vs.} \ \ \ H_1: \text{at least one} \ \beta_j\neq0, \ j=2,\dots,r$$
+R命令如下
+
+```{r eval=F}
+R <- rbind(c(0, 0, 1, 0), c(0, 0, 0, 1))
+linearHypothesis(cubic_model, white.adj = "hc1",
+                 hypothesis.matrix = R)
+```
+
+
+---
+# 检验矩阵
+.pull-left[
+
+此处的检验矩阵设定是因为
+$$\begin{align*}
+  \mathbf{R}{\beta} =& \mathbf{s} \\
+  \begin{pmatrix}
+    0 & 0 & 1 & 0 \\
+    0 & 0 & 0 & 1
+  \end{pmatrix}
+  \begin{pmatrix}
+    \beta_0 \\
+    \beta_1 \\
+    \beta_2 \\
+    \beta_3 \\
+  \end{pmatrix} =&
+  \begin{pmatrix}
+   0 \\
+   0
+  \end{pmatrix} \\
+  \begin{pmatrix}
+    \beta_2 \\
+    \beta_3
+  \end{pmatrix}= &
+  \begin{pmatrix}
+    0 \\
+    0
+  \end{pmatrix}.
+\end{align*}$$
+]
+.pull-right[
+```{r echo=F, highlight.output=14}
+R <- rbind(c(0, 0, 1, 0),c(0, 0, 0, 1))
+linearHypothesis(cubic_model,white.adj = "hc1",
+                 hypothesis.matrix = R)
+```
+]
+
+---
+# 三次多项式回归模型估计
+```{r}
+tab_model(cubic_model)
+```
+
+### 三次项系数估计不显著
+我们改用稳健估计
+
+---
+```{r echo=F}
+tab_model(quadratic_model,cubic_model, 
+          emph.p = T, title = "Regression Outputs",
+          show.ci = F, collapse.se = T, digits = 4,
+          p.style = "a", vcov.fun = "vcovHC", vcov.type = "HC1")
+```
+利用稳健估计后，三次项系数估计变为显著。但是三次项系数估计很小，是否留在模型中？
+
+---
+# 多项式回归的系数解释
+多项式回归的系数不能按照多元回归的解释套路得到解释。为什么？
+
+因为不能说在给定X和X立方不变的情况下，单位变化的X平方将引起Y多大程度的变化。X平方变化并将导致X和X立方的变化。
+
+可以通过对多项式某一项的变化所导致的Y预测值的变化来测度多项式系数的边际效应：
+$$\Delta \widehat{Y} = \hat{f}(X_1 + \Delta X_1, X_2, \cdots, X_k) - \hat{f}(X_1, X_2, \cdots, X_k).$$
+而且，应该注意到，以下两种单位幅度的变化的边际效应是不同的
+
+1. income从10增加到11
+
+2. income从40增加到41
+
+---
+# 多项式回归系数解释
+```{r}
+quadriatic_model <- lm(score ~ income + I(income^2), data = CASchools)
+new_data <- data.frame(income = c(10, 11))
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+diff(Y_hat)
+new_data <- data.frame(income = c(40, 41))
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+diff(Y_hat)
+```
+
+[思考]：这种边际效应差异的原因是什么？线性回归中有没有这种差异存在？
+
+---
+# 对数变换
+变换之后，对回归系数的估计都变得不一样了，我们在解释的时候要十分慎重。
+.left-column[
+对数变换可以
+
+1. 缩小量纲
+
+2. 改善偏度
+
+我们可以对
+1. X对数变换
+
+2. Y对数变换
+
+3. X和Y同时变换
+]
+
+.right-column[
+```{r}
+LinearLog_model <- lm(score ~ log(income), data = CASchools)
+coeftest(LinearLog_model, 
+         vcov = vcovHC, type = "HC1")
+```
+$$\widehat{TestScore} = 557.8 + 36.42 \times \ln(income).$$
+]
+
+---
+# Linear-Log 回归线
+.pull-left[
+对 $\hat{\beta_1}$ 可以解释为：**income 每增加1%**，score增加 $0.01 \times 36.42 = 0.36$ 分。
+[*请证明之*]
+```{r plot_linear_log, fig.show='hide'}
+plot(score ~ income, 
+     col = "steelblue",
+     pch = 20,
+     data = CASchools,
+     main = "Linear-Log Regression Line")
+order_id  <- order(CASchools$income)
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+new_data <- data.frame(income = c(10, 11, 40, 41))
+Y_hat <- predict(LinearLog_model, newdata = new_data)
+Y_hat_matrix <- matrix(Y_hat, nrow = 2, byrow = TRUE)
+Y_hat_matrix[, 2] - Y_hat_matrix[, 1]
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_linear_log', echo=F, fig.height=7}
+```
+]
+
+---
+# Y对数变换
+模型为
+$$\ln(Y_i) = \beta_0 + \beta_1 \times X_i + u_i , \ \ i=1,...,n.$$
+```{r}
+LogLinear_model <- lm(log(score) ~ income, data = CASchools)
+coeftest(LogLinear_model, 
+         vcov = vcovHC, type = "HC1")
+```
+估计模型为：
+$$\widehat{\ln(TestScore)} = 6.439 + 0.00284 \times income.$$
+
+解释为：income每增加一个单位 (1000美金)，score增加 $100 \times 0.00284 \% = 0.284\%$。
+
+---
+# X和Y同时对数变换
+模型为:
+$$\ln(Y_i) = \beta_0 + \beta_1 \times \ln(X_i) + u_i, \ \ i=1,...,n.$$
+```{r}
+LogLog_model <- lm(log(score) ~ log(income), data = CASchools)
+coeftest(LogLog_model, 
+         vcov = vcovHC, type = "HC1")
+```
+估计模型为
+$$\widehat{\ln(TestScore)} = 6.336 + 0.0554 \times \ln(income).$$
+解释为：income每增加1%，score增加 $\hat\beta_1 \%$。
+
+---
+# 对数变换效果
+.pull-left[
+注意图中的Y变量已经事先做了对数变换
+
+```{r plot_log_log, fig.show='hide'}
+plot(log(score) ~ income, 
+     col = "steelblue", 
+     pch = 20, 
+     data = CASchools,
+     main = "Log-Linear Regression Function")
+order_id  <- order(CASchools$income)
+lines(CASchools$income[order_id], 
+      fitted(LogLinear_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+lines(sort(CASchools$income), 
+      fitted(LogLog_model)[order(CASchools$income)], 
+      col = "green", 
+      lwd = 2)
+legend("bottomright",
+       legend = c("log-linear model", "log-log model"),
+       lwd = 2,
+       col = c("red", "green"))    
+```
+]
+
+.pull-right[
+```{r ref.label = 'plot_log_log', echo=F, fig.height=7}
+```
+]
+
+---
+# 多项式模型还是对数模型
+.pull-left[
+```{r}
+polyLog_model <- lm(score ~ log(income) + I(log(income)^2) + I(log(income)^3), data = CASchools)
+adj_R2 <-rbind("quadratic" = summary(quadratic_model)$adj.r.squared,
+               "cubic" = summary(cubic_model)$adj.r.squared,
+               "LinearLog" = summary(LinearLog_model)$adj.r.squared,
+               "LogLinear" = summary(LogLinear_model)$adj.r.squared,
+               "LogLog" = summary(LogLog_model)$adj.r.squared,
+               "polyLog" = summary(polyLog_model)$adj.r.squared)
+
+# assign column names
+colnames(adj_R2) <- "adj_R2"
+adj_R2
+```
+]
+.pull-right[
+```{r echo=F}
+plot(score ~ income, 
+     data = CASchools,
+     col = "steelblue", 
+     pch = 20,
+     main = "Linear-Log and Cubic Regression Functions")
+
+# add the linear-log regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "darkgreen", 
+      lwd = 2)
+
+# add the cubic regression line
+lines(x = CASchools$income[order_id], 
+      y = fitted(cubic_model)[order_id],
+      col = "darkred", 
+      lwd = 2) 
+```
+]
+
+---
+# X变量交叉项

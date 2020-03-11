@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>非线性回归</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 非线性回归
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+
+# 多项式回归：二次项
+在CASchools数据的例子中，我们研究学区居民的收入和学生测试成绩的关系。
+由相关系数可知，该对变量的线性相关关系是显著的。
+
+
+```r
+library(AER)                                                     
+data(CASchools)
+CASchools$size &lt;- CASchools$students/CASchools$teachers
+CASchools$score &lt;- (CASchools$read + CASchools$math) / 2   
+cor(CASchools$income, CASchools$score)
+&gt; [1] 0.7124308
+```
+
+下图中我们给出简单回归直线和二次回归的拟合直线：
+
+`$$TestScore_i = \beta_0 + \beta_1 \times income_i + \beta_2 \times income_i^2 + u_i,$$`
+---
+# 二次项回归
+.pull-left[
+
+```r
+linear_model&lt;- lm(score ~ income, data = CASchools)
+plot(CASchools$income, CASchools$score,
+     col = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)", 
+     ylab = "Test Score",
+     cex.main = 0.9,
+     main = "Test Score vs. District Income and a Linear OLS Regression Function")
+abline(linear_model, 
+       col = "red", 
+       lwd = 2)
+quadratic_model &lt;- lm(score ~ income + I(income^2), data = CASchools)
+plot(CASchools$income, CASchools$score,
+     col  = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)",
+     ylab = "Test Score",
+     main = "Estimated Linear and Quadratic Regression Functions")
+abline(linear_model, col = "black", lwd = 2)
+order_id &lt;- order(CASchools$income)
+lines(x = CASchools$income[order_id], 
+      y = fitted(quadratic_model)[order_id],
+      col = "red", 
+      lwd = 2) 
+```
+]
+
+.pull-right[
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-2-2.png" width="504" /&gt;
+]
+
+---
+# 二次项系数估计
+
+```r
+coeftest(quadratic_model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                Estimate  Std. Error  t value  Pr(&gt;|t|)    
+&gt; (Intercept) 607.3017435   2.9017544 209.2878 &lt; 2.2e-16 ***
+&gt; income        3.8509939   0.2680942  14.3643 &lt; 2.2e-16 ***
+&gt; I(income^2)  -0.0423084   0.0047803  -8.8505 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+`$$\widehat{TestScore}_i = \underset{(2.90)}{607.3} + \underset{(0.27)}{3.85} \times income_i - \underset{(0.0048)}{0.0423} \times income_i^2.$$`
+二次项系数估计为-0.0423，并且在1%的显著性水平下是显著的。
+
+因此用一个**倒U形**来拟合二者的关系更加合适。
+
+---
+# 多项式回归
+
+在二次项回归的基础上，我们可以增加X变量的幂级，建立r阶多项式回归
+`$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 X_i^2 + \cdots + \beta_r X_i^r + u_i.$$`
+可以用如下命令建立三次式回归
+
+```r
+cubic_model &lt;- lm(score ~ poly(income, degree = 3, raw = TRUE), data = CASchools)
+```
+
+为了检验二次和三次式是否显著，我们可以使用如下联合检验
+`$$H_0: \beta_2=0, \ \beta_3=0,\dots,\beta_r=0 \ \ \ \text{vs.} \ \ \ H_1: \text{at least one} \ \beta_j\neq0, \ j=2,\dots,r$$`
+R命令如下
+
+
+```r
+R &lt;- rbind(c(0, 0, 1, 0), c(0, 0, 0, 1))
+linearHypothesis(cubic_model, white.adj = "hc1",
+                 hypothesis.matrix = R)
+```
+
+
+---
+# 检验矩阵
+.pull-left[
+
+此处的检验矩阵设定是因为
+`$$\begin{align*}
+  \mathbf{R}{\beta} =&amp; \mathbf{s} \\
+  \begin{pmatrix}
+    0 &amp; 0 &amp; 1 &amp; 0 \\
+    0 &amp; 0 &amp; 0 &amp; 1
+  \end{pmatrix}
+  \begin{pmatrix}
+    \beta_0 \\
+    \beta_1 \\
+    \beta_2 \\
+    \beta_3 \\
+  \end{pmatrix} =&amp;
+  \begin{pmatrix}
+   0 \\
+   0
+  \end{pmatrix} \\
+  \begin{pmatrix}
+    \beta_2 \\
+    \beta_3
+  \end{pmatrix}= &amp;
+  \begin{pmatrix}
+    0 \\
+    0
+  \end{pmatrix}.
+\end{align*}$$`
+]
+.pull-right[
+
+```
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; poly(income, degree = 3, raw = TRUE)2 = 0
+&gt; poly(income, degree = 3, raw = TRUE)3 = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: score ~ poly(income, degree = 3, raw = TRUE)
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F    Pr(&gt;F)    
+&gt; 1    418                        
+*&gt; 2    416  2 37.691 9.043e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+
+---
+# 三次多项式回归模型估计
+
+```r
+tab_model(cubic_model)
+```
+
+&lt;table style="border-collapse:collapse; border:none;"&gt;
+&lt;tr&gt;
+&lt;th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; "&gt;&amp;nbsp;&lt;/th&gt;
+&lt;th colspan="3" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;score&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  text-align:left; "&gt;Predictors&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;CI&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;p&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;(Intercept)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;600.08&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;588.62&amp;nbsp;&amp;ndash;&amp;nbsp;611.54&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;strong&gt;&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [1st degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;5.02&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;3.33&amp;nbsp;&amp;ndash;&amp;nbsp;6.71&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;strong&gt;&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [2nd degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.10&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.17&amp;nbsp;&amp;ndash;&amp;nbsp;-0.02&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;strong&gt;0.011&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [3rd degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.00&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.00&amp;nbsp;&amp;ndash;&amp;nbsp;0.00&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.147&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm; border-top:1px solid;"&gt;Observations&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="3"&gt;420&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;"&gt;R&lt;sup&gt;2&lt;/sup&gt; / R&lt;sup&gt;2&lt;/sup&gt; adjusted&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3"&gt;0.558 / 0.555&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;/table&gt;
+
+### 三次项系数估计不显著
+我们改用稳健估计
+
+---
+&lt;table style="border-collapse:collapse; border:none;"&gt;
+&lt;caption style="font-weight: bold; text-align:left;"&gt;Regression Outputs&lt;/caption&gt;
+&lt;tr&gt;
+&lt;th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; "&gt;&amp;nbsp;&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;score&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;score&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  text-align:left; "&gt;Predictors&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;(Intercept)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;607.3017 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(2.9018)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;600.0790 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(5.1021)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;3.8510 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.2681)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income^2&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.0423 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.0048)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [1st degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;5.0187 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.7074)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [2nd degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.0958 &lt;sup&gt;**&lt;/sup&gt;&lt;br&gt;(0.0290)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [3rd degree]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.0007 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.0003)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm; border-top:1px solid;"&gt;Observations&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;420&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;420&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;"&gt;R&lt;sup&gt;2&lt;/sup&gt; / R&lt;sup&gt;2&lt;/sup&gt; adjusted&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.556 / 0.554&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.558 / 0.555&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td colspan="3" style="font-style:italic; border-top:double black; text-align:right;"&gt;* p&amp;lt;0.05&amp;nbsp;&amp;nbsp;&amp;nbsp;** p&amp;lt;0.01&amp;nbsp;&amp;nbsp;&amp;nbsp;*** p&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;/table&gt;
+利用稳健估计后，三次项系数估计变为显著。但是三次项系数估计很小，是否留在模型中？
+
+---
+# 多项式回归的系数解释
+多项式回归的系数不能按照多元回归的解释套路得到解释。为什么？
+
+因为不能说在给定X和X立方不变的情况下，单位变化的X平方将引起Y多大程度的变化。X平方变化并将导致X和X立方的变化。
+
+可以通过对多项式某一项的变化所导致的Y预测值的变化来测度多项式系数的边际效应：
+`$$\Delta \widehat{Y} = \hat{f}(X_1 + \Delta X_1, X_2, \cdots, X_k) - \hat{f}(X_1, X_2, \cdots, X_k).$$`
+而且，应该注意到，以下两种单位幅度的变化的边际效应是不同的
+
+1. income从10增加到11
+
+2. income从40增加到41
+
+---
+# 多项式回归系数解释
+
+```r
+quadriatic_model &lt;- lm(score ~ income + I(income^2), data = CASchools)
+new_data &lt;- data.frame(income = c(10, 11))
+Y_hat &lt;- predict(quadriatic_model, newdata = new_data)
+diff(Y_hat)
+&gt;        2 
+&gt; 2.962517
+new_data &lt;- data.frame(income = c(40, 41))
+Y_hat &lt;- predict(quadriatic_model, newdata = new_data)
+diff(Y_hat)
+&gt;         2 
+&gt; 0.4240097
+```
+
+[思考]：这种边际效应差异的原因是什么？线性回归中有没有这种差异存在？
+
+---
+# 对数变换
+变换之后，对回归系数的估计都变得不一样了，我们在解释的时候要十分慎重。
+.left-column[
+对数变换可以
+
+1. 缩小量纲
+
+2. 改善偏度
+
+我们可以对
+1. X对数变换
+
+2. Y对数变换
+
+3. X和Y同时变换
+]
+
+.right-column[
+
+```r
+LinearLog_model &lt;- lm(score ~ log(income), data = CASchools)
+coeftest(LinearLog_model, 
+         vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) 557.8323     3.8399 145.271 &lt; 2.2e-16 ***
+&gt; log(income)  36.4197     1.3969  26.071 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\widehat{TestScore} = 557.8 + 36.42 \times \ln(income).$$`
+]
+
+---
+# Linear-Log 回归线
+.pull-left[
+对 `\(\hat{\beta_1}\)` 可以解释为：**income 每增加1%**，score增加 `\(0.01 \times 36.42 = 0.36\)` 分。
+[*请证明之*]
+
+```r
+plot(score ~ income, 
+     col = "steelblue",
+     pch = 20,
+     data = CASchools,
+     main = "Linear-Log Regression Line")
+order_id  &lt;- order(CASchools$income)
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+new_data &lt;- data.frame(income = c(10, 11, 40, 41))
+Y_hat &lt;- predict(LinearLog_model, newdata = new_data)
+Y_hat_matrix &lt;- matrix(Y_hat, nrow = 2, byrow = TRUE)
+Y_hat_matrix[, 2] - Y_hat_matrix[, 1]
+&gt; [1] 3.471166 0.899297
+```
+]
+
+.pull-right[
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-11-1.png" width="504" /&gt;
+
+```
+&gt; [1] 3.471166 0.899297
+```
+]
+
+---
+# Y对数变换
+模型为
+`$$\ln(Y_i) = \beta_0 + \beta_1 \times X_i + u_i , \ \ i=1,...,n.$$`
+
+```r
+LogLinear_model &lt;- lm(log(score) ~ income, data = CASchools)
+coeftest(LogLinear_model, 
+         vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;               Estimate Std. Error  t value  Pr(&gt;|t|)    
+&gt; (Intercept) 6.43936234 0.00289382 2225.210 &lt; 2.2e-16 ***
+&gt; income      0.00284407 0.00017509   16.244 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+估计模型为：
+`$$\widehat{\ln(TestScore)} = 6.439 + 0.00284 \times income.$$`
+
+解释为：income每增加一个单位 (1000美金)，score增加 `\(100 \times 0.00284 \% = 0.284\%\)`。
+
+---
+# X和Y同时对数变换
+模型为:
+`$$\ln(Y_i) = \beta_0 + \beta_1 \times \ln(X_i) + u_i, \ \ i=1,...,n.$$`
+
+```r
+LogLog_model &lt;- lm(log(score) ~ log(income), data = CASchools)
+coeftest(LogLog_model, 
+         vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error  t value  Pr(&gt;|t|)    
+&gt; (Intercept) 6.3363494  0.0059246 1069.501 &lt; 2.2e-16 ***
+&gt; log(income) 0.0554190  0.0021446   25.841 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+估计模型为
+`$$\widehat{\ln(TestScore)} = 6.336 + 0.0554 \times \ln(income).$$`
+解释为：income每增加1%，score增加 `\(\hat\beta_1 \%\)`。
+
+---
+# 对数变换效果
+.pull-left[
+注意图中的Y变量已经事先做了对数变换
+
+
+```r
+plot(log(score) ~ income, 
+     col = "steelblue", 
+     pch = 20, 
+     data = CASchools,
+     main = "Log-Linear Regression Function")
+order_id  &lt;- order(CASchools$income)
+lines(CASchools$income[order_id], 
+      fitted(LogLinear_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+lines(sort(CASchools$income), 
+      fitted(LogLog_model)[order(CASchools$income)], 
+      col = "green", 
+      lwd = 2)
+legend("bottomright",
+       legend = c("log-linear model", "log-log model"),
+       lwd = 2,
+       col = c("red", "green"))    
+```
+]
+
+.pull-right[
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-14-1.png" width="504" /&gt;
+]
+
+---
+# 多项式模型还是对数模型
+.pull-left[
+
+```r
+polyLog_model &lt;- lm(score ~ log(income) + I(log(income)^2) + I(log(income)^3), data = CASchools)
+adj_R2 &lt;-rbind("quadratic" = summary(quadratic_model)$adj.r.squared,
+               "cubic" = summary(cubic_model)$adj.r.squared,
+               "LinearLog" = summary(LinearLog_model)$adj.r.squared,
+               "LogLinear" = summary(LogLinear_model)$adj.r.squared,
+               "LogLog" = summary(LogLog_model)$adj.r.squared,
+               "polyLog" = summary(polyLog_model)$adj.r.squared)
+
+# assign column names
+colnames(adj_R2) &lt;- "adj_R2"
+adj_R2
+&gt;              adj_R2
+&gt; quadratic 0.5540444
+&gt; cubic     0.5552279
+&gt; LinearLog 0.5614605
+&gt; LogLinear 0.4970106
+&gt; LogLog    0.5567251
+&gt; polyLog   0.5599944
+```
+]
+.pull-right[
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
+]
+
+---
+# X变量交叉项
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  /* Replace <script> tags in slides area to make them executable
+   *
+   * Runs after post-processing of markdown source into slides and replaces only
+   * <script>s on the last slide of continued slides using the .has-continuation
+   * class added by xaringan. Finally, any <script>s in the slides area that
+   * aren't executed are commented out.
+   */
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+  var scriptsNotExecuted = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container.has-continuation script'
+  );
+  if (!scriptsNotExecuted.length) return;
+  for (var i = 0; i < scriptsNotExecuted.length; i++) {
+    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
+    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
