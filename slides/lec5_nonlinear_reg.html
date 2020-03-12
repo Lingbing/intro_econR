@@ -496,7 +496,385 @@ adj_R2
 ]
 
 ---
-# X变量交叉项
+# 交叉项与交互效应
+如果某个独立变量X1对Y的影响取决于另外一个独立变量X2的取值，我们说X1和X2存在交互效应。
+
+之前的例子中，我们可能认为班级规模对学生得分的影响，可能在英语学习者比例高的社区更加显著。这里就需要使用班级规模STR和英语学习者比例english两个变量的交互项来考察它们的交互效应。
+
+交互效应可能有三种形式
+
+1. 两个二元变量交互
+
+2. 一个二元变量和一个连续变量交互
+
+3. 两个连续变量交互
+
+考察如下模型考察大学学历和性别对个人收入的影响：
+`$$Y_i = \beta_0 + \beta_1 \times D_{1i} + \beta_2 \times D_{2i} + u_i$$`
+---
+# 交互效应实例
+
+假设 Y代表个人收入的对数值，D1表示该人是否具有大学学历，D2表示该人的性别。
+
+加入交叉项考察交互效应
+`$$Y_i = \beta_0 + \beta_1 \times D_{1i} + \beta_2 \times D_{2i} + \beta_3 \times (D_{1i} \times D_{2i}) + u_i$$`
+`\((D_{1i} \times D_{2i})\)` 称为交叉项，$\beta_3$ 衡量的即时交互效应的程度。也就是学历对收入的影响和性别有关。
+
+
+`$$\begin{align*}
+  E(Y_i\vert D_{1i}=0, D_{2i} = d_2) =&amp; \, \beta_0 + \beta_1 \times 0 + \beta_2 \times d_2 + \beta_3 \times (0 \times d_2) \\
+  =&amp; \, \beta_0 + \beta_2 \times d_2.
+\end{align*}$$`
+`$$\begin{align*}
+  E(Y_i\vert D_{1i}=1, D_{2i} = d_2) =&amp; \, \beta_0 + \beta_1 \times 1 + \beta_2 \times d_2 + \beta_3 \times (1 \times d_2) \\
+  =&amp; \, \beta_0 + \beta_1 + \beta_2 \times d_2 + \beta_3 \times d_2.
+\end{align*}$$`
+`$$E(Y_i\vert D_{1i}=1, D_{2i} = d_2) - E(Y_i\vert D_{1i}=0, D_{2i} = d_2) = \beta_1 + \beta_3 \times d_2$$`
+`\(\beta_3\)` 在此处表示学历对收入的影响的男女差距。
+
+---
+# 交互效应实例
+
+创建两个新的二值变量
+
+```r
+CASchools$HiSTR &lt;- as.numeric(CASchools$size &gt;= 20)
+CASchools$HiEL &lt;- as.numeric(CASchools$english &gt;= 10)
+```
+
+建立模型
+
+```r
+bi_model &lt;- lm(score ~ HiSTR * HiEL, data = CASchools)
+coeftest(bi_model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error  t value  Pr(&gt;|t|)    
+&gt; (Intercept) 664.1433     1.3881 478.4589 &lt; 2.2e-16 ***
+&gt; HiSTR        -1.9078     1.9322  -0.9874    0.3240    
+&gt; HiEL        -18.3155     2.3340  -7.8472 3.634e-14 ***
+&gt; HiSTR:HiEL   -3.2601     3.1189  -1.0453    0.2965    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+
+估计模型为
+`$$\widehat{TestScore} = \underset{(1.39)}{664.1} - \underset{(1.93)}{1.9} \times HiSTR - \underset{(2.33)}{18.3} \times HiEL - \underset{(3.12)}{3.3} \times (HiSTR \times HiEL)$$`
+参数解释为：
+`$$\begin{align*}
+\widehat{TestScore} = \hat\beta_0 = 664.1 \quad &amp;\Leftrightarrow \quad HiSTR = 0, \, HIEL = 0\\
+\widehat{TestScore} = \hat\beta_0 + \hat\beta_2 = 664.1 - 18.3 = 645.8 \quad &amp;\Leftrightarrow \quad HiSTR = 0, \, HIEL = 1\\
+\widehat{TestScore} = \hat\beta_0 + \hat\beta_1 = 664.1 - 1.9 = 662.2 \quad &amp;\Leftrightarrow \quad HiSTR = 1, \, HIEL = 0\\
+\widehat{TestScore} = \hat\beta_0 + \hat\beta_1 + \hat\beta_2 + \hat\beta_3  = 664.1 - 1.9 - 18.3 - 3.3 = 640.6 \quad &amp;\Leftrightarrow \quad HiSTR = 1, \, HIEL = 1
+\end{align*}$$`
+验证之：
+
+```r
+predict(bi_model, newdata = data.frame("HiSTR" = 0, "HiEL" = 0))
+&gt;        1 
+&gt; 664.1433
+predict(bi_model, newdata = data.frame("HiSTR" = 0, "HiEL" = 1))
+&gt;        1 
+&gt; 645.8278
+predict(bi_model, newdata = data.frame("HiSTR" = 1, "HiEL" = 0))
+&gt;        1 
+&gt; 662.2354
+predict(bi_model, newdata = data.frame("HiSTR" = 1, "HiEL" = 1))
+&gt;        1 
+&gt; 640.6598
+```
+
+---
+# 连续与二元变量交互
+X为某人的工作经历年限，是一个连续变量。
+
+D表示该人是否具有大学学历，是一个二元变量。
+
+可以建立如下三种模型：
+
+1. 同斜率，不同截距
+`$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 D_i + u_i$$`
+
+2. 截距不同，斜率不同
+`$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 (X_i \times D_i) + u_i.$$`
+
+3. 不同斜率，相同截距
+`$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 D_i + \beta_3 \times (X_i \times D_i) + u_i$$`
+---
+# 三种模型图示
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-20-1.png" width="720" style="display: block; margin: auto;" /&gt;
+
+---
+# 实例
+建立如下模型：
+`$$\widehat{TestScore_i} = \beta_0 + \beta_1 \times size_i + \beta_2 \times HiEL_i + \beta_2 (size_i \times HiEL_i) + u_i.$$`
+
+```r
+bci_model &lt;- lm(score ~ size + HiEL + size * HiEL, data = CASchools)
+coeftest(bci_model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept) 682.24584   11.86781 57.4871   &lt;2e-16 ***
+&gt; size         -0.96846    0.58910 -1.6440   0.1009    
+&gt; HiEL          5.63914   19.51456  0.2890   0.7727    
+&gt; size:HiEL    -1.27661    0.96692 -1.3203   0.1875    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\widehat{TestScore} = \underset{(11.87)}{682.2} - \underset{(0.59)}{0.97} \times size + \underset{(19.51)}{5.6} \times HiEL - \underset{(0.97)}{1.28} \times (size \times HiEL).$$`
+---
+# 模型解释
+这是一个变截距变斜率模型，对于一个来自于低英语学习比例社区的人 `\(HiEL_i=0\)`：
+`$$\widehat{TestScore} = 682.2 - 0.97\times size_i.$$`
+对于 `\(HiEL_i\ne0\)`：
+`$$\begin{align*} 
+  \widehat{TestScore} =&amp; \, 682.2 + 5.6 - 0.97\times size_i - 1.28 \times size_i \\
+   =&amp; \, 687.8 - 2.25 \times size_i.
+\end{align*}$$`
+
+两类人群与size的线性关系，具有不同的截距和斜率。
+
+---
+
+.pull-left[
+
+```r
+id &lt;- CASchools$english &gt;= 10
+plot(CASchools$size[!id], CASchools$score[!id],
+     xlim = c(0, 27),
+     ylim = c(600, 720),
+     pch = 20,
+     col = "red",
+     main = "",
+     xlab = "Class Size",
+     ylab = "Test Score")
+points(CASchools$size[id], CASchools$score[id],
+     pch = 20,
+     col = "green")
+coefs &lt;- bci_model$coefficients
+abline(coef = c(coefs[1], coefs[2]),
+       col = "red",
+       lwd = 1.5)
+abline(coef = c(coefs[1] + coefs[3], coefs[2] + coefs[4]),
+       col = "green", 
+       lwd = 1.5 )
+legend("topright", 
+       pch = c(20, 20), 
+       col = c("red", "green"), 
+       legend = c("HiEL = 0", "HiEL = 1"))    
+```
+]
+
+.pull-right[
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
+]
+两类人群与size的线性关系，具有不同的截距和斜率。
+
+---
+# 连续变量交互
+X1是工作年限，X2是受教育年限，二者都是连续变量，建立如下模型：
+`$$Y_i = \beta_0 + \beta_1 \times X_{1i} + \beta_2 \times X_{2i} + \beta_3 \times (X_{1i} \times X_{2i}) + u_i$$`
+给定 `\(X_2\)` 的水平, `\(X_1\)` 的变化对 `\(Y\)` 的影响为
+`$$\frac{\Delta Y}{\Delta X_1} = \beta_1 + \beta_3 X_2.$$`
+
+同理:
+`$$\frac{\Delta Y}{\Delta X_2} = \beta_2 + \beta_3 X_1$$`
+均体现了二者对Y的交互影响。
+`$$\begin{align}
+\Delta Y_i = (\beta_1 + \beta_3 X_2) \Delta X_1 + (\beta_2 + \beta_3 X_1) \Delta X_2 + \beta_3\Delta X_1 \Delta X_2. \tag{8.2}
+\end{align}$$`
+
+---
+# 数据实例
+
+```r
+cci_model &lt;- lm(score ~ size + english + english * size, data = CASchools) 
+coeftest(cci_model, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                 Estimate  Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)  686.3385268  11.7593466 58.3654  &lt; 2e-16 ***
+&gt; size          -1.1170184   0.5875136 -1.9013  0.05796 .  
+&gt; english       -0.6729119   0.3741231 -1.7986  0.07280 .  
+&gt; size:english   0.0011618   0.0185357  0.0627  0.95005    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+模型估计为:
+`$$\widehat{TestScore} = \underset{(11.76)}{686.3} - \underset{(0.59)}{1.12} \times STR - \underset{(0.37)}{0.67} \times PctEL + \underset{(0.02)}{0.0012} \times (STR\times PctEL).$$`
+**[练习]**尝试解释 `\(\beta_3\)`，虽然其估计值不显著。
+
+---
+# 实例
+
+```r
+data("Journals")
+Journals$PricePerCitation &lt;- Journals$price/Journals$citations
+Journals$Age &lt;- 2000 - Journals$foundingyear
+Journals$Characters &lt;- Journals$charpp * Journals$pages/10^6
+Journals$Subscriptions &lt;- Journals$subs
+```
+尝试建立如下四个模型:
+`$$\begin{align*}
+  (I)\quad \ln(Subscriptions_i) =&amp; \, \beta_0 + \beta_1 \ln(PricePerCitation_i) + u_i \\
+  \\
+  (II)\quad \ln(Subscriptions_i) =&amp; \, \beta_0 + \beta_1 \ln(PricePerCitation_i) + \beta_4 \ln(Age_i) + \beta_6 \ln(Characters_i) + u_i \\
+  \\
+  (III)\quad \ln(Subscriptions_i) =&amp; \, \beta_0 + \beta_1 \ln(PricePerCitation_i) + \beta_2 \ln(PricePerCitation_i)^2 \\
+  +&amp; \, \beta_3 \ln(PricePerCitation_i)^3 + \beta_4 \ln(Age_i) + \beta_5 \left[\ln(Age_i) \times \ln(PricePerCitation_i)\right] \\ +&amp; \, \beta_6 \ln(Characters_i) + u_i \\
+  \\
+  (IV)\quad \ln(Subscriptions_i) =&amp; \, \beta_0 + \beta_1 \ln(PricePerCitation_i) + \beta_4 \ln(Age_i) + \beta_6 \ln(Characters_i) + u_i
+\end{align*}$$`
+
+---
+
+```r
+m1 &lt;- lm(log(Subscriptions) ~ log(PricePerCitation), 
+                    data = Journals)
+m2 &lt;- lm(log(Subscriptions) ~ log(PricePerCitation) 
+                    + log(Age) + log(Characters), 
+                    data = Journals)
+m3 &lt;- lm(log(Subscriptions) ~ 
+                    log(PricePerCitation) + I(log(PricePerCitation)^2) 
+                    + I(log(PricePerCitation)^3) + log(Age) 
+                    + log(Age):log(PricePerCitation) + log(Characters), 
+                    data = Journals)
+m4 &lt;- lm(log(Subscriptions) ~ 
+                    log(PricePerCitation) + log(Age) 
+                    + log(Age):log(PricePerCitation) + 
+                    log(Characters), 
+                    data = Journals)
+```
+
+$$
+`\begin{align*}
+  (I)\quad \widehat{\ln(Subscriptions_i)} =&amp; \, 4.77 - 0.53 \ln(PricePerCitation_i) \\
+  (II)\quad \widehat{\ln(Subscriptions_i)} =&amp; \, 3.21 - 0.41 \ln(PricePerCitation_i) + 0.42 \ln(Age_i) + 0.21 \ln(Characters_i) \\
+  (III)\quad \widehat{\ln(Subscriptions_i)} =&amp; \, 3.41 - 0.96 \ln(PricePerCitation_i) + 0.02 \ln(PricePerCitation_i)^2 \\
+  &amp;+ 0.004 \ln(PricePerCitation_i)^3 + 0.37 \ln(Age_i) \\
+  &amp;+ 0.16 \left[\ln(Age_i) \times \ln(PricePerCitation_i)\right] \\ &amp;+ 0.23 \ln(Characters_i) \\
+  (IV)\quad \widehat{\ln(Subscriptions_i)} =&amp; \, 3.43 - 0.90 \ln(PricePerCitation_i) + 0.37 \ln(Age_i) \\ 
+  &amp;+ 0.14 \left[\ln(Age_i) \times \ln(PricePerCitation_i)\right] + 0.23 \ln(Characters_i)
+\end{align*}`
+$$
+---
+&lt;table style="border-collapse:collapse; border:none;"&gt;
+&lt;caption style="font-weight: bold; text-align:left;"&gt;Regression Outputs&lt;/caption&gt;
+&lt;tr&gt;
+&lt;th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; "&gt;&amp;nbsp;&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;log(Subscriptions)&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;log(Subscriptions)&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;log(Subscriptions)&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;log(Subscriptions)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  text-align:left; "&gt;Predictors&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;(Intercept)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;4.77 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.06)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;3.21 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.31)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;3.41 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.32)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;3.43 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.31)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;PricePerCitation [log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.53 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.04)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.41 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.04)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.96 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.19)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.90 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.16)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;Age [log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.42 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.09)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.37 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.09)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.37 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.09)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;Characters [log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.21 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.11)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.23 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.11)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.23 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.11)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;I(PricePerCitation)^2&lt;br&gt;[I(log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.02 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.02)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;I(PricePerCitation)^3&lt;br&gt;[I(log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.00 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.01)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;PricePerCitation [log] *&lt;br&gt;Age [log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.16 &lt;sup&gt;**&lt;/sup&gt;&lt;br&gt;(0.06)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.14 &lt;sup&gt;**&lt;/sup&gt;&lt;br&gt;(0.04)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm; border-top:1px solid;"&gt;Observations&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;180&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;180&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;180&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;180&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;"&gt;R&lt;sup&gt;2&lt;/sup&gt; / R&lt;sup&gt;2&lt;/sup&gt; adjusted&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.557 / 0.555&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.613 / 0.607&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.635 / 0.622&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.634 / 0.626&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td colspan="5" style="font-style:italic; border-top:double black; text-align:right;"&gt;* p&amp;lt;0.05&amp;nbsp;&amp;nbsp;&amp;nbsp;** p&amp;lt;0.01&amp;nbsp;&amp;nbsp;&amp;nbsp;*** p&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;/table&gt;
+
+---
+# 图示
+
+.pull-left[
+
+结合回归输出表和右图，我们可以得出什么结论
+
+1. 对于journal的需求，年轻journal的弹性要高于年限长的journal
+
+2. 图b的线性关系是显著的，二次项和三次项回归系数均不显著，因此非线性模型没有必要。
+
+3. 需求弹性与期刊文章的字数多少有关，在price和age不变的条件下，字数越多，需求弹性越大。
+
+总体来说，需求的弹性是很弱的，也就是说，图书馆对于期刊的需求量对于价格是相当不敏感的。
+
+对于age = 5的年轻期刊，需求的价格弹性可以估计为 `\(-0.899+0.374\times\ln(5)+0.141\times\left[\ln(1)\times\ln(5)\right] \approx -0.3\)`, 即价格增加1%，需求量只会下降0.3%。
+
+这个结论与实际相符吗？
+
+]
+
+.pull-right[
+
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-27-1.png" width="504" /&gt;
+]
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
