@@ -547,8 +547,7 @@ m2 <- lm(score ~ STR + english, data = CASchools)
 m3 <- lm(score ~ STR + english + lunch, data = CASchools)
 m4 <- lm(score ~ STR + english + calworks, data = CASchools)
 m5 <- lm(score ~ STR + english + lunch + calworks, data = CASchools)
-tab_model(m1, m2, m3, m4, m5, robust = T,
-          vcov.type = "HC1", emph.p = T,
+tab_model(m1, m2, m3, m4, m5, robust = T, emph.p = T,
           show.fstat = T, title = "Regression Outputs",
           show.ci = F, collapse.se = T, 
           p.style = "a")
