@@ -12,3 +12,7 @@
 ]
 
 <iframe src="3dreg.html" width="120%" height="90%" frameBorder="0"></iframe>
+
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
