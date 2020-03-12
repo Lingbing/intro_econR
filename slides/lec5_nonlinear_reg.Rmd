@@ -690,27 +690,142 @@ abline(coef = c(JM4C[1] + JM4C[3] * log(5),
 ```
 ]
 
+---
+# 三个问题
+整体上，我们的关键命题是：班级规模和学生测试成绩成反比，班级规模小的学生更可能获得高成绩。那么我们我们尝试回答以下三个问题：
 
+1. 在控制不同地区的其他经济变量下，这样的关系是否与地区的英语学习者比例有关？
 
+2. 主关系中是否存在非线性关系？
 
+3. 班级规模（师生比）降低2个单位，学生的成绩会提升多少分？
 
+我们该怎么做？
 
+接下来，我们考虑7个模型
 
+---
+$$\begin{align}
+ TestScore_i =& \beta_0 + \beta_1 size_i + \beta_4 english_i + \beta_9 lunch_i + u_i \\
+ TestScore_i =& \beta_0 + \beta_1 size_i + \beta_4 english_i + \beta_9 lunch_i + \beta_{10} \ln(income_i) + u_i \\
+  TestScore_i =& \beta_0 + \beta_1 size_i + \beta_5 HiEL_i + \beta_6 (HiEL_i\times size_i) + u_i \\
+  TestScore_i =& \beta_0 + \beta_1 size_i + \beta_5 HiEL_i + \beta_6 (HiEL_i\times size_i) + \beta_9 lunch_i + \beta_{10} \ln(income_i) + u_i \\
+  TestScore_i =& \beta_0 + \beta_1 size_i + \beta_2 size_i^2 + \beta_5 HiEL_i + \beta_9 lunch_i + \beta_{10} \ln(income_i) + u_i \\
+  TestScore_i =& \beta_0 + \beta_1 size_i + \beta_2 size_i^2 + \beta_3 size_i^3 + \beta_5 HiEL_i + \beta_6 (HiEL\times size) \\  &+ \beta_7 (HiEL_i\times size_i^2) + \beta_8 (HiEL_i\times size_i^3) + \beta_9 lunch_i + \beta_{10} \ln(income_i) + u_i \\
+  TestScore_i =& \beta_0 + \beta_1 size_i + \beta_2 size_i^2 + \beta_3 size_i^3 + \beta_4 english + \beta_9 lunch_i + \beta_{10} \ln(income_i) + u_i
+\end{align}$$
 
+```{r}
+m1 <- lm(score ~ size + english + lunch, data = CASchools)
+m2 <- lm(score ~ size + english + lunch + log(income), data = CASchools)
+m3 <- lm(score ~ size + HiEL + HiEL:size, data = CASchools)
+m4 <- lm(score ~ size + HiEL + HiEL:size + lunch + log(income), 
+    data = CASchools)
+m5 <- lm(score ~ size + I(size^2) + I(size^3) + HiEL + lunch + log(income), 
+    data = CASchools)
+m6 <- lm(score ~ size + I(size^2) + I(size^3) + HiEL + HiEL:size + 
+    HiEL:I(size^2) + HiEL:I(size^3) + lunch + log(income), data = CASchools)
+m7 <- lm(score ~ size + I(size^2) + I(size^3) + english + lunch + 
+    log(income), data = CASchools)
+```
 
+---
 
+```{r  echo=F}
+tab_model(m1, m2, m3, m4, m5, m6, m7, emph.p = T, robust = T,
+          show.ci = F, collapse.se = T, dv.labels = paste0("M", 1:7),string.pred = "Coeffcient", show.se = F,
+          p.style = "a")
+```
 
+---
+# 非线性陷阱
+```{r echo=F, fig.width=10, fig.align='center'}
+plot(CASchools$size, 
+     CASchools$score, 
+     xlim = c(12, 28),
+     ylim = c(600, 740),
+     pch = 20, 
+     col = "gray", 
+     xlab = "Student-Teacher Ratio", 
+     ylab = "Test Score")
+legend("top", 
+       legend = c("Linear Regression (2)", 
+                  "Cubic Regression (5)", 
+                  "Cubic Regression (7)"),
+       cex = 0.8,
+       ncol = 3,
+       lty = c(1, 1, 2),
+       col = c("blue", "red", "black"))
+new_data <- data.frame("size" = seq(16, 24, 0.05), 
+                       "english" = mean(CASchools$english),
+                       "lunch" = mean(CASchools$lunch),
+                       "income" = mean(CASchools$income),
+                       "HiEL" = mean(CASchools$HiEL))
+fitted <- predict(m2, newdata = new_data)
 
+lines(new_data$size, 
+      fitted,
+      lwd = 1.5,
+      col = "blue")
+fitted <- predict(m5, newdata = new_data)
+lines(new_data$size, 
+      fitted, 
+      lwd = 1.5,
+      col = "red")
+fitted <- predict(m7, newdata = new_data)
+lines(new_data$size, 
+      fitted, 
+      col = "black",
+      lwd = 1.5,
+      lty = 2)
+```
 
+可以看到，size对score的非线性影响虽然显著，但其实是比较弱的。
 
+---
+# 非线性陷阱
+```{r echo=F, fig.width=10, fig.align='center', fig.height=6}
+plot(CASchools$size[CASchools$HiEL == 0], 
+     CASchools$score[CASchools$HiEL == 0], 
+     xlim = c(12, 28),
+     ylim = c(600, 730),
+     pch = 20, 
+     col = "gray", 
+     xlab = "Student-Teacher Ratio", 
+     ylab = "Test Score")
+points(CASchools$size[CASchools$HiEL == 1], 
+       CASchools$score[CASchools$HiEL == 1],
+       col = "steelblue",
+       pch = 20)
+legend("top", 
+       legend = c("Regression (6) with HiEL=0", "Regression (6) with HiEL=1"),
+       cex = 0.7,
+       ncol = 2,
+       lty = c(1, 1),
+       col = c("green", "red"))
+new_data <- data.frame("size" = seq(12, 28, 0.05), 
+                       "english" = mean(CASchools$english),
+                       "lunch" = mean(CASchools$lunch),
+                       "income" = mean(CASchools$income),
+                       "HiEL" = 0)
+fitted <- predict(m6, newdata = new_data)
+lines(new_data$size, 
+      fitted, 
+      lwd = 1.5,
+      col = "green")
+new_data$HiEL <- 1
+fitted <- predict(m6, newdata = new_data)
+lines(new_data$size, 
+      fitted, 
+      lwd = 1.5,
+      col = "red")
+```
 
+---
+# 结论
 
+- 虽然 $HiEL:size, HiEL:size^2, HiEL:size^3$ 三个交叉项的系数估计是显著的，但是在size位于17-23之间时，score和size的关系基本是线性的，并且与HiEL的取值关系不大。
 
+- 17-23的区间的样本量比例为90%左右，在该区间左边和右边的观测值个数较少。而非线性主要体现在左右两个极值区间。
 
-
-
-
-
-
-
-
+- 因此，虽然是显著的，但是这样的非线性和非线性交叉效应也是可疑的。
