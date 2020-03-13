@@ -30,6 +30,12 @@ library(sjmisc)
 library(sjlabelled)
 BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
 bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
 ```
 
 # 多项式回归：二次项
@@ -626,7 +632,7 @@ $$
 tab_model(m1, m2, m3, m4, emph.p = T,
           show.fstat = T, title = "Regression Outputs",
           show.ci = F, collapse.se = T, 
-          p.style = "a")
+          p.style = "a", CSS = css.fig)
 ```
 
 ---

@@ -1,0 +1,157 @@
+---
+title: "回归方法的有效性"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(AER)
+library(stargazer)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
+```
+
+# 回归方法的有效性
+
+- internal validity：一个统计方法关于因果效应的推断对考虑对象的总体依然有效，则称这个方法是内部有效的。
+
+- external validity：一个统计方法关于因果效应的推断不仅对考察对象的总体有效，而且可以泛化到其他的总体或者环境，则称为外部有效。
+
+内部有效的两个条件：
+1. 因果关系的估计量的测度，也就是回归变量的系数估计，应该是无偏和一致的。
+
+2. 系数估计的标准误应该是有效的。
+
+外部有效是很难满足的，发生如下情况的任何一种，都难以保证外部有效性
+1. 外部的总体和回归研究的总体不同
+2. 外部总体的某个条件/环境/设置与回归研究总体的条件/环境/设置不同。
+
+---
+# 内部有效性
+
+威胁回归方法内部有效性的可能有5种情形：
+
+1. 缺失变量偏差
+2. 函数形式错误
+3. 测量误差
+4. 缺失值与样本选择偏差
+5. 逆向因果
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
