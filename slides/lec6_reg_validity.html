@@ -37,15 +37,476 @@ class: center, middle, inverse, title-slide
 2. 外部总体的某个条件/环境/设置与回归研究总体的条件/环境/设置不同。
 
 ---
-# 内部有效性
+# 内部有效性与函数设定错误
 
-威胁回归方法内部有效性的可能有5种情形：
+.pull-left[
+## 内部有效性的威胁
 
 1. 缺失变量偏差
-2. 函数形式错误
+2. 函数形式设定错误
 3. 测量误差
 4. 缺失值与样本选择偏差
 5. 逆向因果
+
+这五种情况都会导致一个关键的OLS假设不能成立
+`$$E(u_i\vert X_{1i},\dots ,X_{ki}) \neq 0$$`
+继而导致OLS估计量的无偏性和一致性受损。
+
+函数设定错误的典型情形：用线性函数拟合明显的非线性关系。
+]
+
+.pull-right[
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-1-1.png" width="504" /&gt;
+
+]
+
+---
+# 测量误差
+对于某关键变量，如果我们观测到的$\overset{\sim}{X}_i$不是准确的测量值，而存在测量误差，那么总体的回归模型为：
+`$$Y_i = \beta_0 + \beta_1 X_i + u_i$$`
+
+而我们估计的模型为
+`$$\begin{align*}
+  Y_i =&amp; \, \beta_0 + \beta_1 \overset{\sim}{X}_i + \underbrace{\beta_1 (X_i - \overset{\sim}{X}_i) + u_i}_{=v_i} \\
+  Y_i =&amp; \, \beta_0 + \beta_1 \overset{\sim}{X}_i + v_i
+\end{align*}$$`
+明显的 `\(\overset{\sim}{X}_i\)` 与此时的误差项 `\(v_i\)` 是相关的。此时OLS估计将失去无偏性和一致性。
+
+---
+假设测量误差满足
+`$$\begin{equation}
+  \overset{\sim}{X}_i = X_i + w_i, \ \ \rho_{w_i,u_i}=0, \ \ \rho_{w_i,X_i}=0 
+\end{equation}$$`
+那么
+`$$\begin{equation}
+  \widehat{\beta}_1 \xrightarrow{p}{\frac{\sigma_{X}^2}{\sigma_{X}^2 + \sigma_{w}^2}} \beta_1 \tag{9.1}
+\end{equation}$$`
+
+假设模拟：
+`$$\begin{align*}
+  Y_i =&amp; \, 100 + 0.5 (X_i - 50) \\
+      =&amp; \, 75 + 0.5 X_i. \tag{9.4}
+\end{align*}$$`
+X的测量存在误差 `\(\overset{\sim}{X_i} = X_i + w_i\)`，其中 `\(w_i \overset{i.i.d.}{\sim} \mathcal{N}(0,10)\)`。
+
+.pull-left[
+
+```r
+set.seed(1)
+library(mvtnorm)
+dat &lt;- data.frame(
+  rmvnorm(1000, c(50, 100), 
+          sigma = cbind(c(10, 5), c(5, 10))))
+colnames(dat) &lt;- c("X", "Y")
+noerror_mod &lt;- lm(Y ~ X, data = dat)
+dat$X &lt;- dat$X + rnorm(n = 1000, sd = sqrt(10))
+error_mod &lt;- lm(Y ~ X, data = dat)
+noerror_mod$coefficients
+```
+]
+.pull-right[
+X的系数估计明显“低估”了真实的线性关系强度。
+
+
+```
+&gt; (Intercept)           X 
+&gt;  76.3002047   0.4755264
+&gt; (Intercept)           X 
+&gt;   87.276004    0.255212
+```
+]
+
+---
+# 系数纠正
+.pull-left[
+
+```r
+plot(dat$X, dat$Y, 
+     pch = 20, 
+     col = "steelblue",
+     xlab = "X",
+     ylab = "Y")
+abline(coef = c(75, 0.5), 
+       col = "darkgreen",
+       lwd  = 1.5)
+abline(noerror_mod, 
+       col = "purple",
+       lwd  = 1.5)
+abline(error_mod, 
+       col = "darkred",
+       lwd  = 1.5)
+legend("topleft",
+       bg = "transparent",
+       cex = 0.8,
+       lty = 1,
+       col = c("darkgreen", "purple", "darkred"), 
+       legend = c("Population", "No Errors", "Errors"))    
+```
+]
+
+.pull-right[
+`$$\frac{\sigma_X^2 + \sigma_w^2}{\sigma_X^2} \cdot \widehat{\beta}_1 = \frac{10+10}{10} \cdot 0.255 = 0.51$$`
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-4-1.png" width="504" /&gt;
+]
+
+---
+# 数据缺失与样本选择偏差
+
+
+.pull-left[
+数据缺失可能有三种情形
+第一种情况（完全随机缺失）不会损害OLS估计的无偏性，但是会降低有效性，相当于减少了样本量。
+
+```r
+set.seed(1)
+dat &lt;- data.frame(
+  rmvnorm(1000, c(50, 100), 
+          sigma = cbind(c(10, 5), c(5, 10))))
+colnames(dat) &lt;- c("X", "Y")
+id &lt;- sample(1:1000, size = 500)
+plot(dat$X[-id], dat$Y[-id], col = "steelblue", pch = 20,
+     cex = 0.8,xlab = "X", ylab = "Y")
+points(dat$X[id], dat$Y[id],cex = 0.8,
+       col = "gray", pch = 20)
+abline(coef = c(75, 0.5), col = "darkgreen",lwd  = 1.5)
+abline(noerror_mod)
+dat &lt;- dat[-id, ]
+c1_mod &lt;- lm(dat$Y ~ dat$X, data = dat)
+abline(c1_mod, col = "purple")
+legend("topleft",lty = 1,bg = "transparent",
+       cex = 0.8,col = c("darkgreen", "black", "purple"), 
+       legend = c("Population", "Full sample", "500 obs. randomly selected"))    
+```
+]
+
+.pull-right[
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-5-1.png" width="504" /&gt;
+]
+
+---
+# 缺失与X有关
+.pull-left[
+假设缺失机制与某个X变量有关，比如所有X&gt;45的观测缺失，这样也不会影响OLS估计的无偏性，同样是降低了估计的有效应。
+
+```r
+set.seed(1)
+dat &lt;- data.frame(
+  rmvnorm(1000, c(50, 100), 
+          sigma = cbind(c(10, 5), c(5, 10))))
+colnames(dat) &lt;- c("X", "Y")
+id &lt;- dat$X &gt;= 45
+plot(dat$X[-id], dat$Y[-id], col = "steelblue",
+     cex = 0.8,pch = 20,xlab = "X",ylab = "Y")
+points(dat$X[id], dat$Y[id],  col = "gray",
+       cex = 0.8,pch = 20)
+abline(coef = c(75, 0.5), col = "darkgreen",lwd  = 1.5)
+abline(noerror_mod)
+dat &lt;- dat[-id, ]
+c2_mod &lt;- lm(dat$Y ~ dat$X, data = dat)
+abline(c2_mod, col = "purple")
+legend("topleft",lty = 1,bg = "transparent",
+       cex = 0.8,col = c("darkgreen", "black", "purple"), 
+       legend = c("Population", "Full sample", "Obs. with X &lt;= 45"))
+```
+]
+
+.pull-right[
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-6-1.png" width="504" /&gt;
+]
+
+---
+# 缺失与Y有关
+.pull-left[
+
+
+```r
+set.seed(1)
+dat &lt;- data.frame(
+  rmvnorm(1000, c(50,100), 
+          sigma = cbind(c(10,5), c(5,10))))
+colnames(dat) &lt;- c("X","Y")
+id &lt;- which(dat$X &lt;= 55 &amp; dat$Y &gt;= 100)
+plot(dat$X[-id], dat$Y[-id], col = "gray",
+     cex = 0.8,pch = 20,xlab = "X",ylab = "Y")
+points(dat$X[id], dat$Y[id], col = "steelblue",
+     cex = 0.8,pch = 20)
+abline(coef = c(75, 0.5), col = "darkgreen",lwd  = 1.5)
+abline(noerror_mod)
+dat &lt;- dat[id, ]
+c3_mod &lt;- lm(dat$Y ~ dat$X, data = dat)
+abline(c3_mod, col = "purple")
+legend("topleft",lty = 1,bg = "transparent",
+       cex = 0.8,col = c("darkgreen", "black", "purple"), 
+       legend = c("Population", "Full sample", "X &lt;= 55 &amp; Y &gt;= 100"))
+```
+]
+
+.pull-right[
+缺失的数据为 `\(X_i &lt; 55,Y_i&gt;100\)`, 这种情况会导致OLS的估计有偏。
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+]
+
+---
+# 逆向因果
+在通常的回归关系中，我们假设X的变化可以导致Y的变化，因此因果关系的方向是从X到Y。如果Y的变化也可以导致X的变化，则称为存在逆向因果(reverse causality)关系，或者叫做同时因果关系 (simultaneous causality)。
+
+逆向因果会导致X与误差项相关，从而导致OLS估计出现偏误。
+
+```r
+library(AER)
+data("CigarettesSW")
+c1995 &lt;- subset(CigarettesSW, year == "1995")
+cigcon_mod &lt;- lm(log(packs) ~ log(price), data = c1995)
+cigcon_mod
+&gt; 
+&gt; Call:
+&gt; lm(formula = log(packs) ~ log(price), data = c1995)
+&gt; 
+&gt; Coefficients:
+&gt; (Intercept)   log(price)  
+&gt;      10.850       -1.213
+```
+
+---
+# 实例
+
+.pull-left[
+
+```r
+library(AER)
+data(MASchools)
+data("CASchools")
+MASchools$score &lt;- MASchools$score4 
+MASchools$STR &lt;- MASchools$stratio
+Linear_model_MA &lt;- lm(score ~ income, data = MASchools)
+Linearlog_model_MA &lt;- lm(score ~ log(income), data = MASchools) 
+cubic_model_MA &lt;- lm(score ~ I(income) + I(income^2) + I(income^3), data = MASchools)
+plot(MASchools$income, MASchools$score,
+     pch = 20,
+     col = "steelblue",
+     xlab = "District income",
+     ylab = "Test score",
+     xlim = c(0, 50),
+     ylim = c(620, 780))
+abline(Linear_model_MA, lwd = 2)
+order_id  &lt;- order(MASchools$income)
+lines(MASchools$income[order_id],
+      fitted(Linearlog_model_MA)[order_id], 
+      col = "darkgreen", 
+      lwd = 2)
+lines(x = MASchools$income[order_id], 
+      y = fitted(cubic_model_MA)[order_id],
+      col = "orange", 
+      lwd = 2) 
+legend("topleft",
+       legend = c("Linear", "Linear-Log", "Cubic"),
+       lty = 1,
+       col = c("Black", "darkgreen", "orange"))    
+```
+]
+
+.pull-right[
+&lt;img src="lec6_reg_validity_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+]
+
+---
+# 模型比较
+
+```r
+MASchools$HiEL &lt;- as.numeric(MASchools$english &gt; median(MASchools$english))
+m1 &lt;- lm(score ~ STR, data = MASchools)
+
+m2 &lt;- lm(score ~ STR + english + lunch + log(income), 
+                        data = MASchools)
+m3 &lt;- lm(score ~ STR + english + lunch + income + I(income^2) 
+                        + I(income^3), data = MASchools)
+m4 &lt;- lm(score ~ STR + I(STR^2) + I(STR^3) + english + lunch + income
+                        + I(income^2) + I(income^3), data = MASchools)
+m5 &lt;- lm(score ~ STR + I(income^2) + I(income^3) + HiEL:STR + lunch 
+                        + income, data = MASchools)
+m6 &lt;- lm(score ~ STR + I(income^2) + I(income^3) + HiEL + HiEL:STR + lunch + income, data = MASchools)
+```
+---
+
+
+&lt;table style="border-collapse:collapse; border:none;"&gt;
+&lt;tr&gt;
+&lt;th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; "&gt;&amp;nbsp;&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M1&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M2&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M3&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M4&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M5&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;M6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  text-align:left; "&gt;Coeffcient&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  col7"&gt;Estimates&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;(Intercept)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;739.62 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(8.88)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;682.43 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(12.09)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;744.03 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(23.19)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;665.50 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(116.08)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;752.61 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(23.51)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;759.91 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(25.29)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;STR&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-1.72 &lt;sup&gt;**&lt;/sup&gt;&lt;br&gt;(0.52)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.69 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.28)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.64 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.28)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;12.43 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(20.28)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.71 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.28)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;-1.02 &lt;sup&gt;**&lt;/sup&gt;&lt;br&gt;(0.38)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;english&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.41 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.35)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.44 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.36)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.43 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.37)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;lunch&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.52 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.08)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.58 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.11)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.59 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.12)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.69 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.09)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;-0.71 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.10)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income [log]&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;16.53 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(3.30)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-3.07 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(2.53)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-3.38 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(2.74)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-3.68 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(2.64)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;-3.87 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(2.72)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income^2&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.16 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.09)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.17 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.10)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.18 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.10)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;0.18 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.10)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;income^3&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.00 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.00)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.00 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.00)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.00 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.00)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;-0.00 &lt;sup&gt;*&lt;/sup&gt;&lt;br&gt;(0.00)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;STR^2&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.68 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(1.13)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;STR^3&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.01 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.02)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;STR : HiEL&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.08 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.08)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;0.80 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.58)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;HiEL&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7"&gt;-12.56 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(10.23)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm; border-top:1px solid;"&gt;Observations&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;220&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;"&gt;R&lt;sup&gt;2&lt;/sup&gt; / R&lt;sup&gt;2&lt;/sup&gt; adjusted&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.067 / 0.063&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.676 / 0.670&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.685 / 0.676&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.687 / 0.675&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.683 / 0.674&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.686 / 0.675&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td colspan="7" style="font-style:italic; border-top:double black; text-align:right;"&gt;* p&amp;lt;0.05&amp;nbsp;&amp;nbsp;&amp;nbsp;** p&amp;lt;0.01&amp;nbsp;&amp;nbsp;&amp;nbsp;*** p&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;/table&gt;
+
+---
+# 非线性检验
+
+```r
+linearHypothesis(m3, c("I(income^2)=0", "I(income^3)=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.002353646
+linearHypothesis(m4,  c("STR=0", "I(STR^2)=0", "I(STR^3)=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.07477528
+linearHypothesis(m4,  c("I(STR^2)=0", "I(STR^3)=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.7124486
+linearHypothesis(m5, c("STR=0", "STR:HiEL=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.02860567
+linearHypothesis(m5, c("I(income^2)=0", "I(income^3)=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.03417127
+linearHypothesis(m6,c("HiEL=0", "STR:HiEL=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.2328473
+linearHypothesis(m6, 
+                 c("I(income^2)=0", "I(income^3)=0"), 
+                 vcov. = vcovHC, type = "HC1")$`Pr(&gt;F)`[2]
+&gt; [1] 0.04191161
+```
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
