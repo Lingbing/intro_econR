@@ -16,3 +16,15 @@
 library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
+
+
+# reference list at the very end
+# library(RefManageR)
+
+```{r, results='asis', echo=FALSE}
+PrintBibliography(bib)
+```
+
+# inline reference
+`r Citep(bib, "mackinnon1985")`
+`r Citet(bib, "mackinnon1985")`

@@ -1,0 +1,402 @@
+---
+title: "面板数据回归"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(AER)
+library(stargazer)
+library(kableExtra)
+library(sjPlot)
+library(sjmisc)
+library(plm)
+library(sjlabelled)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
+```
+# 面板数据
+与横截面(cross-section)数据不同，面板数据 = 横截面数据 + 时间序列数据，所以面板数据可以理解为横截面数据在时间轴上堆叠的结果。表示为
+$$(X_{it},Y_{it}), \ i=1,\dots,n \ \ \ \text{and} \ \ \ t=1,\dots,T$$
+i是截面上的索引下标，t是时间索引下标。
+```{r}
+library(AER)
+data(Fatalities)
+kable(head(Fatalities, 5)) %>%
+  kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
+```
+---
+# 实例：酒精税与交通事故死亡率
+```{r}
+Fatalities$fatal_rate <- Fatalities$fatal / Fatalities$pop * 10000
+Fatalities1982 <- subset(Fatalities, year == "1982")
+Fatalities1988 <- subset(Fatalities, year == "1988")
+fatal1982_mod <- lm(fatal_rate ~ beertax, data = Fatalities1982)
+fatal1988_mod <- lm(fatal_rate ~ beertax, data = Fatalities1988)
+coeftest(fatal1982_mod, vcov. = vcovHC, type = "HC1")
+```
+$$\begin{align*}
+  \widehat{FatalityRate} =& \, \underset{(0.15)}{2.01} + \underset{(0.13)}{0.15} \times BeerTax \quad (1982 \text{ data}), \\
+  \widehat{FatalityRate} =& \, \underset{(0.11)}{1.86} + \underset{(0.13)}{0.44} \times BeerTax \quad (1988 \text{ data}).
+\end{align*}$$
+
+---
+# 横截面回归结果
+.pull-left[
+```{r}
+plot(x = Fatalities1982$beertax, 
+     y = Fatalities1982$fatal_rate, 
+     xlab = "Beer tax (in 1988 dollars)",
+     ylab = "Fatality rate (fatalities per 10000)",
+     main = "Traffic Fatality Rates and Beer Taxes in 1982", 
+     ylim = c(0, 4.5),pch = 20, col = "steelblue")
+abline(fatal1982_mod, lwd = 1.5)
+```
+
+]
+
+.pull-right[
+```{r}
+plot(x = Fatalities1988$beertax, 
+     y = Fatalities1988$fatal_rate, 
+     xlab = "Beer tax (in 1988 dollars)",
+     ylab = "Fatality rate (fatalities per 10000)",
+     main = "Traffic Fatality Rates and Beer Taxes in 1988",
+     ylim = c(0, 4.5),pch = 20, col = "steelblue")
+abline(fatal1988_mod, lwd = 1.5)
+```
+
+]
+
+---
+# First Difference (FD) 估计
+
+用 $Z_i$ 表示**不可观测的异质性** (unobserved heterogeneity)。如果面板数据只有两个年份：
+$$
+\begin{align*}
+  FatalityRate_{i1982} =&\, \beta_0 + \beta_1 BeerTax_{i1982} + \beta_2 Z_i + u_{i1982}, \\
+  FatalityRate_{i1988} =&\, \beta_0 + \beta_1 BeerTax_{i1988} + \beta_2 Z_i + u_{i1988}.
+\end{align*}
+$$
+应用差分操作，有
+$$FatalityRate_{i1988} - FatalityRate_{i1982} = \beta_1 (BeerTax_{i1988} - BeerTax_{i1982}) + u_{i1988} - u_{i1982}$$
+
+通过差分，我们消除了不可观测的异质性。
+
+$$\widehat{FatalityRate_{i1988} - FatalityRate_{i1982}} = -\underset{(0.065)}{0.072} -\underset{(0.36)}{1.04} \times (BeerTax_{i1988}-BeerTax_{i1982})$$
+
+---
+# FD估计结果
+.pull-left[
+```{r}
+diff_fatal_rate <- Fatalities1988$fatal_rate - Fatalities1982$fatal_rate
+diff_beertax <- Fatalities1988$beertax - Fatalities1982$beertax
+fatal_diff_mod <- lm(diff_fatal_rate ~ diff_beertax)
+coeftest(fatal_diff_mod, vcov = vcovHC, type = "HC1")
+```
+
+```{r}
+mean(Fatalities$fatal_rate)
+```
+]
+
+.pull-right[
+
+```{r echo=F}
+plot(x = diff_beertax, 
+     y = diff_fatal_rate, 
+     xlab = "Change in beer tax (in 1988 dollars)",
+     ylab = "Change in fatality rate (fatalities per 10000)",
+     main = "Changes in Traffic Fatality Rates and Beer Taxes in 1982-1988",
+     xlim = c(-0.6, 0.6),
+     ylim = c(-1.5, 1),
+     pch = 20, 
+     col = "steelblue")
+
+# add the regression line to plot
+abline(fatal_diff_mod, lwd = 1.5)
+```
+
+]
+
+---
+# 固定效应模型 Fixed Effects
+
+面板回归模型：
+$$Y_{it} = \beta_0 + \beta_1 X_{it} + \beta_2 Z_i +  u_{it}$$
+假设$\alpha_i = \beta_0 + \beta_2 Z_i$，模型为
+$$\begin{align}
+Y_{it} = \alpha_i + \beta_1 X_{it} + u_{it} \tag{10.1}.
+\end{align}$$
+
+$\alpha_i$ 是每个观测对象i的固定效应，不随时间变化。上面的模型可以用虚拟变量改写
+$$\begin{align}
+Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \gamma_3 D3_i + \cdots + \gamma_n Dn_i + u_{it} \tag{10.2}.
+\end{align}$$
+上述模型也称为变截距模型，对n个观测对象建立了n个不同截距的线性模型。
+
+固定效应模型可以加入多个解释变量
+$$\begin{align}
+Y_{it} = \beta_1 X_{1,it} + \cdots + \beta_k X_{k,it} + \alpha_i + u_{it} \tag{10.3}
+\end{align}$$
+
+---
+# FE 估计
+
+因为 $Z_i$ 是不可观测的，因此也不可控制。FE估计利用time-demeaning (within transformation) 来消除 $Z_i$:
+$$\begin{align*}
+Y_{it} - \overline{Y}_i =& \, \beta_1(X_{it}-\overline{X}_i) + (u_{it} - \overline{u}_i) \\
+\overset{\sim}{Y}_{it} =& \, \beta_1 \overset{\sim}{X}_{it} + \overset{\sim}{u}_{it}.
+\end{align*}$$
+变换之后即可使用OLS估计获得估计值。
+
+---
+# Time demeaning, within transformation
+.pull-left[
+```{r}
+Fatalities_demeaned <- with(Fatalities,
+            data.frame(fatal_rate = fatal_rate - ave(fatal_rate, state),
+            beertax = beertax - ave(beertax, state)))
+head(Fatalities_demeaned)
+```
+]
+.pull-right[
+以下代码获得time-mean
+```{r}
+library(dplyr)
+Fatalities %>% group_by(state) %>% summarize(mean(fatal_rate))
+```
+]
+
+---
+# 应用实例
+模型为
+$$\begin{align}
+FatalityRate_{it} = \beta_1 BeerTax_{it} + StateFixedEffects + u_{it}, \tag{10.6}
+\end{align}$$
+
+可以使用以下lm命令，加入n-1个state虚拟变量
+```{r eval=F}
+fatal_fe_lm_mod <- lm(fatal_rate ~ beertax + state - 1, data = Fatalities)
+```
+或者使用within-transformation
+$$\overset{\sim}{FatalityRate} = \beta_1 \overset{\sim}{BeerTax}_{it} + u_{it}.$$
+```{r eval=F}
+Fatalities_demeaned <- with(Fatalities,
+            data.frame(fatal_rate = fatal_rate - ave(fatal_rate, state),
+            beertax = beertax - ave(beertax, state)))
+
+# estimate the regression
+summary(lm(fatal_rate ~ beertax - 1, data = Fatalities_demeaned))
+```
+
+---
+# 使用`plm`包进行面板回归
+```{r}
+fatal_fe_mod <- plm(fatal_rate ~ beertax, 
+                    data = Fatalities,
+                    index = c("state", "year"), 
+                    model = "within")
+coeftest(fatal_fe_mod, vcov. = vcovHC, type = "HC1")
+```
+估计模型为
+$$\begin{align}
+\widehat{FatalityRate} = -\underset{(0.29)}{0.66} \times BeerTax + StateFixedEffects. \tag{10.7}
+\end{align}$$
+
+
+-0.66的系数依然是很大的，意味着啤酒税增加亿美元，那么交通事故死亡率下降0.66/10000人。虽然FE模型消除了因为州际固定效应所导致的忽略变量偏误，但是很可能还有其他的遗漏变量（比如时间效应）在导致高估。
+
+
+
+---
+# 时间固定效应
+只有时间固定效应模型
+$$Y_{it} = \beta_0 + \beta_1 X_{it} + \delta_2 B2_t + \cdots + \delta_T BT_t + u_{it},$$
+
+同时包含横截面固定效应和时间固定效应
+$$Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \cdots + \gamma_n DT_i + \delta_2 B2_t + \cdots + \delta_T BT_t + u_{it} .$$
+也可以写作
+$$FatalityRate_{it} = \beta_1 BeerTax_{it} + StateEffects + TimeFixedEffects + u_{it}$$
+
+---
+# `lm`与`plm`
+```{r eval=F}
+class(Fatalities$state)
+class(Fatalities$year)
+fatal_tefe_lm_mod <- lm(fatal_rate ~ beertax + state + year - 1, data = Fatalities)
+```
+```{r}
+fatal_tefe_mod <- plm(fatal_rate ~ beertax, 
+                      data = Fatalities,
+                      index = c("state", "year"), 
+                      model = "within", 
+                      effect = "twoways")
+coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
+```
+
+模型为
+$$\begin{align}
+\widehat{FatalityRate} =  -\underset{(0.35)}{0.64} \times BeerTax + StateEffects + TimeFixedEffects
+\end{align}$$
+系数-0.64所有减小，显著性也有所降低，但依然在10%的水平下显著。说明时间固定效应的加入并没有改变之前FE模型的结论。
+
+---
+# 固定效应回归标准误
+固定效应回归模型的一大假设为$$(X_{i1}, X_{i2}, \dots, X_{i3}, u_{i1}, \dots, u_{iT}), i = 1, 2, \cdots, n$$ 是一个联合分布的iid样本。
+
+这就要求观测值是uncorrelated across entities。 但是我们允许 X autocorrelated within entities
+
+比如以上的州际面板数据，我们要求观测值在州际之间是不相关的，但是在同一个州内允许相关的（同一个州内就是一个时间序列数据，他们自然的具有自相关性）
+
+HAC标准误 [heteroskedasticity and autocorrelation-consistent (HAC) standard errors]
+可以用作对具有异方差和自相关的面板数据回归估计进行校正。
+
+聚类标准误就属于HAC标准误。聚类标准误允许我们使用同一个截面内部具有异方差和自相关的面板数据进行回归估计（还是不允许截面之间的相关性）
+
+---
+# `plm`和聚类标准误
+
+
+```{r}
+coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
+```
+
+一般情况下，聚类标准误要大于`lm`回归的稳健标准误。因此聚类标准误的p值一般更大。
+
+在某些情况下，聚类标准误可能会得到完全不同于普通标准误的显著性决定。
+
+---
+# 面板回归与控制变量
+
+在啤酒税与交通事务死亡率的例子中，我们并没有控制其他变量，尤其是非常重要的经济条件和驾驶法律等变量。
+
+.pull-left[
+- unemp: 州际失业率变量
+- log(income): 收入的对数
+- miles: 州际平均驾驶里程
+- drinkage: 州际法定最小饮酒年龄
+- dringagc: drinkage的离散化变量，将年龄分为四个区间[18,19), [19,20), [20,21) 和 [21,22].。
+- punish: 二值变量，饮酒驾驶是否会被定罪
+]
+
+.pull-right[
+建模前的数据及变量预处理
+
+```{r}
+Fatalities$drinkagec <- cut(Fatalities$drinkage,
+                            breaks = 18:22, 
+                            include.lowest = TRUE, 
+                            right = FALSE)
+
+Fatalities$drinkagec <- relevel(Fatalities$drinkagec, "[21,22]")
+Fatalities$punish <- with(Fatalities, factor(jail == "yes" | service == "yes", 
+                                             labels = c("no", "yes")))
+Fatalities_1982_1988 <- Fatalities[with(Fatalities, year == 1982 | year == 1988), ]
+```
+
+]
+
+---
+# 构建模型梯队
+```{r}
+m1 <- lm(fatal_rate ~ beertax, data = Fatalities)
+m2 <- plm(fatal_rate ~ beertax + state, data = Fatalities)
+m3 <- plm(fatal_rate ~ beertax + state + year,
+                       index = c("state","year"),
+                       model = "within",
+                       effect = "twoways", 
+                       data = Fatalities)
+m4 <- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m5 <- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles,
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m6 <- plm(fatal_rate ~ beertax + year + drinkage 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m7 <- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities_1982_1988)
+```
+
+---
+```{r}
+linearHypothesis(m4,
+                 test = "F",
+                 c("drinkagec[18,19)=0", "drinkagec[19,20)=0", "drinkagec[20,21)"), 
+                 vcov. = vcovHC, type = "HC1")
+```
+
+```{r}
+linearHypothesis(m4, 
+                 test = "F",
+                 c("log(income)", "unemp"), 
+                 vcov. = vcovHC, type = "HC1")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

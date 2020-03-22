@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>面板数据回归</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 面板数据回归
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+# 面板数据
+与横截面(cross-section)数据不同，面板数据 = 横截面数据 + 时间序列数据，所以面板数据可以理解为横截面数据在时间轴上堆叠的结果。表示为
+`$$(X_{it},Y_{it}), \ i=1,\dots,n \ \ \ \text{and} \ \ \ t=1,\dots,T$$`
+i是截面上的索引下标，t是时间索引下标。
+
+```r
+library(AER)
+data(Fatalities)
+kable(head(Fatalities, 5)) %&gt;%
+  kable_styling() %&gt;%
+  scroll_box(width = "100%", height = "200px")
+```
+
+&lt;div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; "&gt;&lt;table class="table" style="margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; state &lt;/th&gt;
+   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; year &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; spirits &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; unemp &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; income &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; emppop &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; beertax &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; baptist &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; mormon &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; drinkage &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; dry &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; youngdrivers &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; miles &lt;/th&gt;
+   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; breath &lt;/th&gt;
+   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; jail &lt;/th&gt;
+   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; service &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; sfatal &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal1517 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal1517 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal1820 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal1820 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal2124 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal2124 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; afatal &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop1517 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop1820 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop2124 &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; milestot &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; unempus &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; emppopus &lt;/th&gt;
+   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; gsp &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1982 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.37 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 14.4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10544.15 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 50.69204 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.539379 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 30.3557 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.32829 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 25.0063 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.211572 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7233.887 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 839 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 146 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 99 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 53 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 99 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 34 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 120 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 32 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 309.438 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3942002 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 208999.6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 221553.4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 290000.1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 28516 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 57.8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -0.0221248 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1983 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.36 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 13.7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10732.80 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 52.14703 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.788991 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 30.3336 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.34341 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 22.9942 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.210768 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7836.348 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 930 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 154 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 98 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 71 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 108 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 26 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 124 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 341.834 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3960008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 202000.1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 219125.5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 290000.2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 31032 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 57.9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0465583 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1984 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.32 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11.1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11108.79 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 54.16809 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.714286 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 30.3115 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.35924 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 24.0426 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.211484 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8262.990 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 932 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 165 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 94 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 49 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 103 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 25 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 118 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 34 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 304.872 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3988992 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 197000.0 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 216724.1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 288000.2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 32961 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 59.5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0627978 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1985 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.28 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11332.63 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 55.27114 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.652542 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 30.2895 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.37579 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 19.67 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 23.6339 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.211140 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8726.917 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 882 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 146 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 98 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 66 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 100 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 23 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 114 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 45 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 276.742 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4021008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 194999.7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 214349.0 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 284000.3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35091 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 60.1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0274900 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1986 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.23 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11661.51 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 56.51450 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.609907 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 30.2674 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.39311 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 21.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 23.4647 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.213400 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8952.854 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1081 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 172 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 119 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 82 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 120 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 23 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 119 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 29 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 360.716 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4049994 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 203999.9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 212000.0 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 263000.3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 36259 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.0 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 60.7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0321429 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+---
+# 实例：酒精税与交通事故死亡率
+
+```r
+Fatalities$fatal_rate &lt;- Fatalities$fatal / Fatalities$pop * 10000
+Fatalities1982 &lt;- subset(Fatalities, year == "1982")
+Fatalities1988 &lt;- subset(Fatalities, year == "1988")
+fatal1982_mod &lt;- lm(fatal_rate ~ beertax, data = Fatalities1982)
+fatal1988_mod &lt;- lm(fatal_rate ~ beertax, data = Fatalities1988)
+coeftest(fatal1982_mod, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)  2.01038    0.14957 13.4408   &lt;2e-16 ***
+&gt; beertax      0.14846    0.13261  1.1196   0.2687    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\begin{align*}
+  \widehat{FatalityRate} =&amp; \, \underset{(0.15)}{2.01} + \underset{(0.13)}{0.15} \times BeerTax \quad (1982 \text{ data}), \\
+  \widehat{FatalityRate} =&amp; \, \underset{(0.11)}{1.86} + \underset{(0.13)}{0.44} \times BeerTax \quad (1988 \text{ data}).
+\end{align*}$$`
+
+---
+# 横截面回归结果
+.pull-left[
+
+```r
+plot(x = Fatalities1982$beertax, 
+     y = Fatalities1982$fatal_rate, 
+     xlab = "Beer tax (in 1988 dollars)",
+     ylab = "Fatality rate (fatalities per 10000)",
+     main = "Traffic Fatality Rates and Beer Taxes in 1982", 
+     ylim = c(0, 4.5),pch = 20, col = "steelblue")
+abline(fatal1982_mod, lwd = 1.5)
+```
+
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-3-1.png" width="504" /&gt;
+
+]
+
+.pull-right[
+
+```r
+plot(x = Fatalities1988$beertax, 
+     y = Fatalities1988$fatal_rate, 
+     xlab = "Beer tax (in 1988 dollars)",
+     ylab = "Fatality rate (fatalities per 10000)",
+     main = "Traffic Fatality Rates and Beer Taxes in 1988",
+     ylim = c(0, 4.5),pch = 20, col = "steelblue")
+abline(fatal1988_mod, lwd = 1.5)
+```
+
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-4-1.png" width="504" /&gt;
+
+]
+
+---
+# First Difference (FD) 估计
+
+用 `\(Z_i\)` 表示**不可观测的异质性** (unobserved heterogeneity)。如果面板数据只有两个年份：
+$$
+`\begin{align*}
+  FatalityRate_{i1982} =&amp;\, \beta_0 + \beta_1 BeerTax_{i1982} + \beta_2 Z_i + u_{i1982}, \\
+  FatalityRate_{i1988} =&amp;\, \beta_0 + \beta_1 BeerTax_{i1988} + \beta_2 Z_i + u_{i1988}.
+\end{align*}`
+$$
+应用差分操作，有
+`$$FatalityRate_{i1988} - FatalityRate_{i1982} = \beta_1 (BeerTax_{i1988} - BeerTax_{i1982}) + u_{i1988} - u_{i1982}$$`
+
+通过差分，我们消除了不可观测的异质性。
+
+`$$\widehat{FatalityRate_{i1988} - FatalityRate_{i1982}} = -\underset{(0.065)}{0.072} -\underset{(0.36)}{1.04} \times (BeerTax_{i1988}-BeerTax_{i1982})$$`
+
+---
+# FD估计结果
+.pull-left[
+
+```r
+diff_fatal_rate &lt;- Fatalities1988$fatal_rate - Fatalities1982$fatal_rate
+diff_beertax &lt;- Fatalities1988$beertax - Fatalities1982$beertax
+fatal_diff_mod &lt;- lm(diff_fatal_rate ~ diff_beertax)
+coeftest(fatal_diff_mod, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;               Estimate Std. Error t value Pr(&gt;|t|)   
+&gt; (Intercept)  -0.072037   0.065355 -1.1022 0.276091   
+&gt; diff_beertax -1.040973   0.355006 -2.9323 0.005229 **
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+
+```r
+mean(Fatalities$fatal_rate)
+&gt; [1] 2.040444
+```
+]
+
+.pull-right[
+
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+
+]
+
+---
+# 固定效应模型 Fixed Effects
+
+面板回归模型：
+`$$Y_{it} = \beta_0 + \beta_1 X_{it} + \beta_2 Z_i +  u_{it}$$`
+假设$\alpha_i = \beta_0 + \beta_2 Z_i$，模型为
+`$$\begin{align}
+Y_{it} = \alpha_i + \beta_1 X_{it} + u_{it} \tag{10.1}.
+\end{align}$$`
+
+`\(\alpha_i\)` 是每个观测对象i的固定效应，不随时间变化。上面的模型可以用虚拟变量改写
+`$$\begin{align}
+Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \gamma_3 D3_i + \cdots + \gamma_n Dn_i + u_{it} \tag{10.2}.
+\end{align}$$`
+上述模型也称为变截距模型，对n个观测对象建立了n个不同截距的线性模型。
+
+固定效应模型可以加入多个解释变量
+`$$\begin{align}
+Y_{it} = \beta_1 X_{1,it} + \cdots + \beta_k X_{k,it} + \alpha_i + u_{it} \tag{10.3}
+\end{align}$$`
+
+---
+# FE 估计
+
+因为 `\(Z_i\)` 是不可观测的，因此也不可控制。FE估计利用time-demeaning (within transformation) 来消除 `\(Z_i\)`:
+`$$\begin{align*}
+Y_{it} - \overline{Y}_i =&amp; \, \beta_1(X_{it}-\overline{X}_i) + (u_{it} - \overline{u}_i) \\
+\overset{\sim}{Y}_{it} =&amp; \, \beta_1 \overset{\sim}{X}_{it} + \overset{\sim}{u}_{it}.
+\end{align*}$$`
+变换之后即可使用OLS估计获得估计值。
+
+---
+# Time demeaning, within transformation
+.pull-left[
+
+```r
+Fatalities_demeaned &lt;- with(Fatalities,
+            data.frame(fatal_rate = fatal_rate - ave(fatal_rate, state),
+            beertax = beertax - ave(beertax, state)))
+head(Fatalities_demeaned)
+&gt;    fatal_rate     beertax
+&gt; 1 -0.28426713 -0.08441320
+&gt; 2 -0.06414705  0.16519805
+&gt; 3 -0.07619715  0.09049293
+&gt; 4 -0.21914718  0.02874967
+&gt; 5  0.25651277 -0.01388565
+&gt; 6  0.30596278 -0.06379274
+```
+]
+.pull-right[
+以下代码获得time-mean
+
+```r
+library(dplyr)
+Fatalities %&gt;% group_by(state) %&gt;% summarize(mean(fatal_rate))
+&gt; # A tibble: 48 x 2
+&gt;    state `mean(fatal_rate)`
+&gt;    &lt;fct&gt;              &lt;dbl&gt;
+&gt;  1 al                  2.41
+&gt;  2 az                  2.71
+&gt;  3 ar                  2.44
+&gt;  4 ca                  1.90
+&gt;  5 co                  1.87
+&gt;  6 ct                  1.46
+&gt;  7 de                  2.07
+&gt;  8 fl                  2.48
+&gt;  9 ga                  2.40
+&gt; 10 id                  2.57
+&gt; # ... with 38 more rows
+```
+]
+
+---
+# 应用实例
+模型为
+`$$\begin{align}
+FatalityRate_{it} = \beta_1 BeerTax_{it} + StateFixedEffects + u_{it}, \tag{10.6}
+\end{align}$$`
+
+可以使用以下lm命令，加入n-1个state虚拟变量
+
+```r
+fatal_fe_lm_mod &lt;- lm(fatal_rate ~ beertax + state - 1, data = Fatalities)
+```
+或者使用within-transformation
+`$$\overset{\sim}{FatalityRate} = \beta_1 \overset{\sim}{BeerTax}_{it} + u_{it}.$$`
+
+```r
+Fatalities_demeaned &lt;- with(Fatalities,
+            data.frame(fatal_rate = fatal_rate - ave(fatal_rate, state),
+            beertax = beertax - ave(beertax, state)))
+
+# estimate the regression
+summary(lm(fatal_rate ~ beertax - 1, data = Fatalities_demeaned))
+```
+
+---
+# 使用`plm`包进行面板回归
+
+```r
+fatal_fe_mod &lt;- plm(fatal_rate ~ beertax, 
+                    data = Fatalities,
+                    index = c("state", "year"), 
+                    model = "within")
+coeftest(fatal_fe_mod, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;         Estimate Std. Error t value Pr(&gt;|t|)  
+&gt; beertax -0.65587    0.28880  -2.271  0.02388 *
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+估计模型为
+`$$\begin{align}
+\widehat{FatalityRate} = -\underset{(0.29)}{0.66} \times BeerTax + StateFixedEffects. \tag{10.7}
+\end{align}$$`
+
+
+-0.66的系数依然是很大的，意味着啤酒税增加亿美元，那么交通事故死亡率下降0.66/10000人。虽然FE模型消除了因为州际固定效应所导致的忽略变量偏误，但是很可能还有其他的遗漏变量（比如时间效应）在导致高估。
+
+
+
+---
+# 时间固定效应
+只有时间固定效应模型
+`$$Y_{it} = \beta_0 + \beta_1 X_{it} + \delta_2 B2_t + \cdots + \delta_T BT_t + u_{it},$$`
+
+同时包含横截面固定效应和时间固定效应
+`$$Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \cdots + \gamma_n DT_i + \delta_2 B2_t + \cdots + \delta_T BT_t + u_{it} .$$`
+也可以写作
+`$$FatalityRate_{it} = \beta_1 BeerTax_{it} + StateEffects + TimeFixedEffects + u_{it}$$`
+
+---
+# `lm`与`plm`
+
+```r
+class(Fatalities$state)
+class(Fatalities$year)
+fatal_tefe_lm_mod &lt;- lm(fatal_rate ~ beertax + state + year - 1, data = Fatalities)
+```
+
+```r
+fatal_tefe_mod &lt;- plm(fatal_rate ~ beertax, 
+                      data = Fatalities,
+                      index = c("state", "year"), 
+                      model = "within", 
+                      effect = "twoways")
+coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;         Estimate Std. Error t value Pr(&gt;|t|)  
+&gt; beertax -0.63998    0.35015 -1.8277  0.06865 .
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+模型为
+`$$\begin{align}
+\widehat{FatalityRate} =  -\underset{(0.35)}{0.64} \times BeerTax + StateEffects + TimeFixedEffects
+\end{align}$$`
+系数-0.64所有减小，显著性也有所降低，但依然在10%的水平下显著。说明时间固定效应的加入并没有改变之前FE模型的结论。
+
+---
+# 固定效应回归标准误
+固定效应回归模型的一大假设为$$(X_{i1}, X_{i2}, \dots, X_{i3}, u_{i1}, \dots, u_{iT}), i = 1, 2, \cdots, n$$ 是一个联合分布的iid样本。
+
+这就要求观测值是uncorrelated across entities。 但是我们允许 X autocorrelated within entities
+
+比如以上的州际面板数据，我们要求观测值在州际之间是不相关的，但是在同一个州内允许相关的（同一个州内就是一个时间序列数据，他们自然的具有自相关性）
+
+HAC标准误 [heteroskedasticity and autocorrelation-consistent (HAC) standard errors]
+可以用作对具有异方差和自相关的面板数据回归估计进行校正。
+
+聚类标准误就属于HAC标准误。聚类标准误允许我们使用同一个截面内部具有异方差和自相关的面板数据进行回归估计（还是不允许截面之间的相关性）
+
+---
+# `plm`和聚类标准误
+
+
+
+```r
+coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;         Estimate Std. Error t value Pr(&gt;|t|)  
+&gt; beertax -0.63998    0.35015 -1.8277  0.06865 .
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+一般情况下，聚类标准误要大于`lm`回归的稳健标准误。因此聚类标准误的p值一般更大。
+
+在某些情况下，聚类标准误可能会得到完全不同于普通标准误的显著性决定。
+
+---
+# 面板回归与控制变量
+
+在啤酒税与交通事务死亡率的例子中，我们并没有控制其他变量，尤其是非常重要的经济条件和驾驶法律等变量。
+
+.pull-left[
+- unemp: 州际失业率变量
+- log(income): 收入的对数
+- miles: 州际平均驾驶里程
+- drinkage: 州际法定最小饮酒年龄
+- dringagc: drinkage的离散化变量，将年龄分为四个区间[18,19), [19,20), [20,21) 和 [21,22].。
+- punish: 二值变量，饮酒驾驶是否会被定罪
+]
+
+.pull-right[
+建模前的数据及变量预处理
+
+
+```r
+Fatalities$drinkagec &lt;- cut(Fatalities$drinkage,
+                            breaks = 18:22, 
+                            include.lowest = TRUE, 
+                            right = FALSE)
+
+Fatalities$drinkagec &lt;- relevel(Fatalities$drinkagec, "[21,22]")
+Fatalities$punish &lt;- with(Fatalities, factor(jail == "yes" | service == "yes", 
+                                             labels = c("no", "yes")))
+Fatalities_1982_1988 &lt;- Fatalities[with(Fatalities, year == 1982 | year == 1988), ]
+```
+
+]
+
+---
+# 构建模型梯队
+
+```r
+m1 &lt;- lm(fatal_rate ~ beertax, data = Fatalities)
+m2 &lt;- plm(fatal_rate ~ beertax + state, data = Fatalities)
+m3 &lt;- plm(fatal_rate ~ beertax + state + year,
+                       index = c("state","year"),
+                       model = "within",
+                       effect = "twoways", 
+                       data = Fatalities)
+m4 &lt;- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m5 &lt;- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles,
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m6 &lt;- plm(fatal_rate ~ beertax + year + drinkage 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities)
+m7 &lt;- plm(fatal_rate ~ beertax + state + year + drinkagec 
+                       + punish + miles + unemp + log(income), 
+                       index = c("state", "year"),
+                       model = "within",
+                       effect = "twoways",
+                       data = Fatalities_1982_1988)
+```
+
+---
+
+```r
+linearHypothesis(m4,
+                 test = "F",
+                 c("drinkagec[18,19)=0", "drinkagec[19,20)=0", "drinkagec[20,21)"), 
+                 vcov. = vcovHC, type = "HC1")
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; drinkagec[18,19) = 0
+&gt; drinkagec[19,20) = 0
+&gt; drinkagec[20,21) = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: fatal_rate ~ beertax + state + year + drinkagec + punish + miles + 
+&gt;     unemp + log(income)
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F Pr(&gt;F)
+&gt; 1    276                 
+&gt; 2    273  3 0.3782 0.7688
+```
+
+
+```r
+linearHypothesis(m4, 
+                 test = "F",
+                 c("log(income)", "unemp"), 
+                 vcov. = vcovHC, type = "HC1")
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; log(income) = 0
+&gt; unemp = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: fatal_rate ~ beertax + state + year + drinkagec + punish + miles + 
+&gt;     unemp + log(income)
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F    Pr(&gt;F)    
+&gt; 1    275                        
+&gt; 2    273  2 31.577 4.609e-13 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  /* Replace <script> tags in slides area to make them executable
+   *
+   * Runs after post-processing of markdown source into slides and replaces only
+   * <script>s on the last slide of continued slides using the .has-continuation
+   * class added by xaringan. Finally, any <script>s in the slides area that
+   * aren't executed are commented out.
+   */
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+  var scriptsNotExecuted = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container.has-continuation script'
+  );
+  if (!scriptsNotExecuted.length) return;
+  for (var i = 0; i < scriptsNotExecuted.length; i++) {
+    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
+    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
