@@ -324,12 +324,17 @@ $$
   FatalityRate_{i1988} =&amp;\, \beta_0 + \beta_1 BeerTax_{i1988} + \beta_2 Z_i + u_{i1988}.
 \end{align*}`
 $$
-应用差分操作，有
+应用**时间序列**差分 (difference) 操作:
 `$$FatalityRate_{i1988} - FatalityRate_{i1982} = \beta_1 (BeerTax_{i1988} - BeerTax_{i1982}) + u_{i1988} - u_{i1982}$$`
 
 通过差分，我们消除了不可观测的异质性。
 
 `$$\widehat{FatalityRate_{i1988} - FatalityRate_{i1982}} = -\underset{(0.065)}{0.072} -\underset{(0.36)}{1.04} \times (BeerTax_{i1988}-BeerTax_{i1982})$$`
+
+
+### [注意]:不可观测异质性一般是跟截面相关的，在时间上是不变的 (time invariant)
+
+
 
 ---
 # FD估计结果
@@ -355,6 +360,8 @@ coeftest(fatal_diff_mod, vcov = vcovHC, type = "HC1")
 mean(Fatalities$fatal_rate)
 &gt; [1] 2.040444
 ```
+
+[问题：]FD估计有什么限制和缺点？
 ]
 
 .pull-right[
@@ -364,20 +371,20 @@ mean(Fatalities$fatal_rate)
 ]
 
 ---
-# 固定效应模型 Fixed Effects
+# 固定效应模型 （Fixed Effects）
 
 面板回归模型：
 `$$Y_{it} = \beta_0 + \beta_1 X_{it} + \beta_2 Z_i +  u_{it}$$`
-假设$\alpha_i = \beta_0 + \beta_2 Z_i$，模型为
+假设 `\(\alpha_i = \beta_0 + \beta_2 Z_i\)`，模型为
 `$$\begin{align}
-Y_{it} = \alpha_i + \beta_1 X_{it} + u_{it} \tag{10.1}.
+Y_{it} = \alpha_i + \beta_1 X_{it} + u_{it}.
 \end{align}$$`
 
-`\(\alpha_i\)` 是每个观测对象i的固定效应，不随时间变化。上面的模型可以用虚拟变量改写
+`\(\alpha_i\)` 是每个观测对象 `\(i\)` 的固定效应，不随时间变化。上面的模型可以用虚拟变量改写
 `$$\begin{align}
-Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \gamma_3 D3_i + \cdots + \gamma_n Dn_i + u_{it} \tag{10.2}.
+Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \gamma_3 D3_i + \cdots + \gamma_n Dn_i + u_{it}.
 \end{align}$$`
-上述模型也称为变截距模型，对n个观测对象建立了n个不同截距的线性模型。
+上述模型也称为变截距模型，对 `\(n\)` 个观测对象建立了 `\(n\)` 个不同截距的线性模型。
 
 固定效应模型可以加入多个解释变量
 `$$\begin{align}
@@ -387,15 +394,21 @@ Y_{it} = \beta_1 X_{1,it} + \cdots + \beta_k X_{k,it} + \alpha_i + u_{it} \tag{1
 ---
 # FE 估计
 
-因为 `\(Z_i\)` 是不可观测的，因此也不可控制。FE估计利用time-demeaning (within transformation) 来消除 `\(Z_i\)`:
+因为 `\(Z_i\)` 是不可观测的，因此也不可控制。FE估计利用time-demeaning (within transformation) 来消除 `\(Z_i\)`的影响:
 `$$\begin{align*}
 Y_{it} - \overline{Y}_i =&amp; \, \beta_1(X_{it}-\overline{X}_i) + (u_{it} - \overline{u}_i) \\
 \overset{\sim}{Y}_{it} =&amp; \, \beta_1 \overset{\sim}{X}_{it} + \overset{\sim}{u}_{it}.
 \end{align*}$$`
+
 变换之后即可使用OLS估计获得估计值。
 
+获得 `\(\overset{\sim}{Y}_{it}\)` 和 `\(\overset{\sim}{X}_{it}\)` 的操作称为 "时间去均值"，或者 "within变换"。
+
+### 理解如何进行 “within 变换” 操作对理解FE回归以及不可观测异质性的消除至关重要。
+
+尝试将不可观测异质性与固定效应概念联系起来。
 ---
-# Time demeaning, within transformation
+# Time demeaning (within transformation)
 .pull-left[
 
 ```r
@@ -437,9 +450,9 @@ Fatalities %&gt;% group_by(state) %&gt;% summarize(mean(fatal_rate))
 
 ---
 # 应用实例
-模型为
+
 `$$\begin{align}
-FatalityRate_{it} = \beta_1 BeerTax_{it} + StateFixedEffects + u_{it}, \tag{10.6}
+FatalityRate_{it} = \beta_1 BeerTax_{it} + StateFixedEffects + u_{it}
 \end{align}$$`
 
 可以使用以下lm命令，加入n-1个state虚拟变量
@@ -495,13 +508,13 @@ coeftest(fatal_fe_mod, vcov. = vcovHC, type = "HC1")
 `$$Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \cdots + \gamma_n DT_i + \delta_2 B2_t + \cdots + \delta_T BT_t + u_{it} .$$`
 也可以写作
 `$$FatalityRate_{it} = \beta_1 BeerTax_{it} + StateEffects + TimeFixedEffects + u_{it}$$`
+一般通过下标的写法来识别是横截面固定效应还是时间固定效应
 
+因此在写面板回归模型时要特别注意
 ---
 # `lm`与`plm`
 
 ```r
-class(Fatalities$state)
-class(Fatalities$year)
 fatal_tefe_lm_mod &lt;- lm(fatal_rate ~ beertax + state + year - 1, data = Fatalities)
 ```
 
@@ -529,11 +542,13 @@ coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
 
 ---
 # 固定效应回归标准误
-固定效应回归模型的一大假设为$$(X_{i1}, X_{i2}, \dots, X_{i3}, u_{i1}, \dots, u_{iT}), i = 1, 2, \cdots, n$$ 是一个联合分布的iid样本。
+固定效应回归模型的一大假设为 `$$(X_{i1}, X_{i2}, \dots, X_{i3}, u_{i1}, \dots, u_{iT}), i = 1, 2, \cdots, n$$` 是一个联合分布的i.i.d.样本。
 
-这就要求观测值是uncorrelated across entities。 但是我们允许 X autocorrelated within entities
+- 这就要求观测值是 "uncorrelated across entities"
 
-比如以上的州际面板数据，我们要求观测值在州际之间是不相关的，但是在同一个州内允许相关的（同一个州内就是一个时间序列数据，他们自然的具有自相关性）
+- 但是我们允许 X "autocorrelated within entities"
+
+比如以上的州际面板数据，我们要求观测值在州际之间是不相关的，但是在同一个州内允许相关的（同一个州内就是一个时间序列数据，他们自然的具有自相关性）.
 
 HAC标准误 [heteroskedasticity and autocorrelation-consistent (HAC) standard errors]
 可以用作对具有异方差和自相关的面板数据回归估计进行校正。
@@ -566,12 +581,14 @@ coeftest(fatal_tefe_mod, vcov = vcovHC, type = "HC1")
 在啤酒税与交通事务死亡率的例子中，我们并没有控制其他变量，尤其是非常重要的经济条件和驾驶法律等变量。
 
 .pull-left[
+
 - unemp: 州际失业率变量
 - log(income): 收入的对数
 - miles: 州际平均驾驶里程
 - drinkage: 州际法定最小饮酒年龄
-- dringagc: drinkage的离散化变量，将年龄分为四个区间[18,19), [19,20), [20,21) 和 [21,22].。
+- dringagc: drinkage 的离散化变量，将年龄分为四个区间。
 - punish: 二值变量，饮酒驾驶是否会被定罪
+
 ]
 
 .pull-right[
@@ -654,6 +671,7 @@ linearHypothesis(m4,
 &gt; 2    273  3 0.3782 0.7688
 ```
 
+---
 
 ```r
 linearHypothesis(m4, 
@@ -678,6 +696,20 @@ linearHypothesis(m4,
 &gt; ---
 &gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
+
+
+---
+# 小结
+
+通过面板数据分析，我们没有发现
+
+1. 严厉惩罚和最小饮酒年龄限制对由于酒驾导致的交通事故死亡率没有显著的影响。
+
+2. 酒精税有一定程度的降低效应。
+
+3. 但这个效应是否可以理解为因果效应？
+
+4. 即便我们已经控制了一些州际和时间固定效应，但可能依然有没有考虑到的（或者没有观测到）异质性。
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
@@ -728,30 +760,20 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 (function() {
   "use strict"
-  /* Replace <script> tags in slides area to make them executable
-   *
-   * Runs after post-processing of markdown source into slides and replaces only
-   * <script>s on the last slide of continued slides using the .has-continuation
-   * class added by xaringan. Finally, any <script>s in the slides area that
-   * aren't executed are commented out.
-   */
+  // Replace <script> tags in slides area to make them executable
   var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+    '.remark-slides-area .remark-slide-container script'
   );
   if (!scripts.length) return;
   for (var i = 0; i < scripts.length; i++) {
     var s = document.createElement('script');
     var code = document.createTextNode(scripts[i].textContent);
     s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
     scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-  var scriptsNotExecuted = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container.has-continuation script'
-  );
-  if (!scriptsNotExecuted.length) return;
-  for (var i = 0; i < scriptsNotExecuted.length; i++) {
-    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
-    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
   }
 })();
 (function() {
