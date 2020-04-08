@@ -23,32 +23,34 @@ class: center, middle, inverse, title-slide
 
 # 回归方法的有效性
 
-- internal validity：一个统计方法关于因果效应的推断对考虑对象的总体依然有效，则称这个方法是内部有效的。
+- Internal validity：关于因果效应的推断对考虑对象的总体依然有效，则称这个方法是内部有效的。
 
-- external validity：一个统计方法关于因果效应的推断不仅对考察对象的总体有效，而且可以泛化到其他的总体或者环境，则称为外部有效。
+- External validity：关于因果效应的推断不仅对考察对象的总体有效，而且可以泛化到其他的总体或者环境，则称为外部有效。
 
 内部有效的两个条件：
 1. 因果关系的估计量的测度，也就是回归变量的系数估计，应该是无偏和一致的。
 
 2. 系数估计的标准误应该是有效的。
 
-外部有效是很难满足的，发生如下情况的任何一种，都难以保证外部有效性
-1. 外部的总体和回归研究的总体不同
+外部有效是很难满足的，发生如下情况的任何一种，都难以保证外部有效性:
+
+1. 外部的总体和回归研究的总体不同.
+
 2. 外部总体的某个条件/环境/设置与回归研究总体的条件/环境/设置不同。
 
 ---
 # 内部有效性与函数设定错误
 
 .pull-left[
-## 内部有效性的威胁
+### 内部有效性的威胁
 
-1. 缺失变量偏差
+1. 缺失变量偏差 (OVB)
 2. 函数形式设定错误
-3. 测量误差
-4. 缺失值与样本选择偏差
-5. 逆向因果
+3. 测量误差 (measurement error)
+4. 缺失值与样本选择偏差 (sample selection bias)
+5. 逆向因果 (reverse causality)
 
-这五种情况都会导致一个关键的OLS假设不能成立
+这五种情况都会导致一个关键的OLS假设不成立:
 `$$E(u_i\vert X_{1i},\dots ,X_{ki}) \neq 0$$`
 继而导致OLS估计量的无偏性和一致性受损。
 
@@ -62,7 +64,7 @@ class: center, middle, inverse, title-slide
 
 ---
 # 测量误差
-对于某关键变量，如果我们观测到的$\overset{\sim}{X}_i$不是准确的测量值，而存在测量误差，那么总体的回归模型为：
+对于某关键变量，如果我们观测到的 `\(\overset{\sim}{X}_i\)` 不是准确的测量值，存在测量上的误差，那么总体的回归模型为：
 `$$Y_i = \beta_0 + \beta_1 X_i + u_i$$`
 
 而我们估计的模型为
@@ -70,7 +72,9 @@ class: center, middle, inverse, title-slide
   Y_i =&amp; \, \beta_0 + \beta_1 \overset{\sim}{X}_i + \underbrace{\beta_1 (X_i - \overset{\sim}{X}_i) + u_i}_{=v_i} \\
   Y_i =&amp; \, \beta_0 + \beta_1 \overset{\sim}{X}_i + v_i
 \end{align*}$$`
-明显的 `\(\overset{\sim}{X}_i\)` 与此时的误差项 `\(v_i\)` 是相关的。此时OLS估计将失去无偏性和一致性。
+明显的, `\(\overset{\sim}{X}_i\)` 与此时的误差项 `\(v_i\)` 是相关的。此时OLS估计将失去无偏性和一致性。
+
+### [思考]：在什么情况下会发生较为严重的测量误差？
 
 ---
 假设测量误差满足
@@ -79,13 +83,13 @@ class: center, middle, inverse, title-slide
 \end{equation}$$`
 那么
 `$$\begin{equation}
-  \widehat{\beta}_1 \xrightarrow{p}{\frac{\sigma_{X}^2}{\sigma_{X}^2 + \sigma_{w}^2}} \beta_1 \tag{9.1}
+  \widehat{\beta}_1 \xrightarrow{p}{\frac{\sigma_{X}^2}{\sigma_{X}^2 + \sigma_{w}^2}} \beta_1
 \end{equation}$$`
 
 假设模拟：
 `$$\begin{align*}
   Y_i =&amp; \, 100 + 0.5 (X_i - 50) \\
-      =&amp; \, 75 + 0.5 X_i. \tag{9.4}
+      =&amp; \, 75 + 0.5 X_i. 
 \end{align*}$$`
 X的测量存在误差 `\(\overset{\sim}{X_i} = X_i + w_i\)`，其中 `\(w_i \overset{i.i.d.}{\sim} \mathcal{N}(0,10)\)`。
 
@@ -186,7 +190,7 @@ legend("topleft",lty = 1,bg = "transparent",
 ---
 # 缺失与X有关
 .pull-left[
-假设缺失机制与某个X变量有关，比如所有X&gt;45的观测缺失，这样也不会影响OLS估计的无偏性，同样是降低了估计的有效应。
+假设缺失机制与某个X变量有关，比如所有 `\(X&gt;45\)` 的观测缺失，这样也不会影响OLS估计的无偏性，同样是降低了估计的有效性。
 
 ```r
 set.seed(1)
@@ -557,30 +561,20 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 (function() {
   "use strict"
-  /* Replace <script> tags in slides area to make them executable
-   *
-   * Runs after post-processing of markdown source into slides and replaces only
-   * <script>s on the last slide of continued slides using the .has-continuation
-   * class added by xaringan. Finally, any <script>s in the slides area that
-   * aren't executed are commented out.
-   */
+  // Replace <script> tags in slides area to make them executable
   var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+    '.remark-slides-area .remark-slide-container script'
   );
   if (!scripts.length) return;
   for (var i = 0; i < scripts.length; i++) {
     var s = document.createElement('script');
     var code = document.createTextNode(scripts[i].textContent);
     s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
     scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-  var scriptsNotExecuted = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container.has-continuation script'
-  );
-  if (!scriptsNotExecuted.length) return;
-  for (var i = 0; i < scriptsNotExecuted.length; i++) {
-    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
-    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
   }
 })();
 (function() {

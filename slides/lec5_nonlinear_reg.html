@@ -71,7 +71,7 @@ lines(x = CASchools$income[order_id],
 ]
 
 .pull-right[
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-2-2.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-8-1.png" width="504" /&gt;&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-8-2.png" width="504" /&gt;
 ]
 
 ---
@@ -382,7 +382,7 @@ Y_hat_matrix[, 2] - Y_hat_matrix[, 1]
 ]
 
 .pull-right[
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-11-1.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-17-1.png" width="504" /&gt;
 
 ```
 &gt; [1] 3.471166 0.899297
@@ -463,7 +463,7 @@ legend("bottomright",
 ]
 
 .pull-right[
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-14-1.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-20-1.png" width="504" /&gt;
 ]
 
 ---
@@ -492,7 +492,7 @@ adj_R2
 ```
 ]
 .pull-right[
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
 ]
 
 ---
@@ -605,7 +605,7 @@ D表示该人是否具有大学学历，是一个二元变量。
 `$$Y_i = \beta_0 + \beta_1 X_i + \beta_2 D_i + \beta_3 \times (X_i \times D_i) + u_i$$`
 ---
 # 三种模型图示
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-20-1.png" width="720" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-26-1.png" width="720" style="display: block; margin: auto;" /&gt;
 
 ---
 # 实例
@@ -671,7 +671,7 @@ legend("topright",
 ]
 
 .pull-right[
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-28-1.png" width="504" /&gt;
 ]
 两类人群与size的线性关系，具有不同的截距和斜率。
 
@@ -873,7 +873,7 @@ $$
 
 .pull-right[
 
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-27-1.png" width="504" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-33-1.png" width="504" /&gt;
 ]
 
 ---
@@ -1077,13 +1077,13 @@ m7 &lt;- lm(score ~ size + I(size^2) + I(size^3) + english + lunch +
 
 ---
 # 非线性陷阱
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-30-1.png" width="720" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-36-1.png" width="720" style="display: block; margin: auto;" /&gt;
 
 可以看到，size对score的非线性影响虽然显著，但其实是比较弱的。
 
 ---
 # 非线性陷阱
-&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-31-1.png" width="720" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec5_nonlinear_reg_files/figure-html/unnamed-chunk-37-1.png" width="720" style="display: block; margin: auto;" /&gt;
 
 ---
 # 结论
@@ -1143,30 +1143,20 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 (function() {
   "use strict"
-  /* Replace <script> tags in slides area to make them executable
-   *
-   * Runs after post-processing of markdown source into slides and replaces only
-   * <script>s on the last slide of continued slides using the .has-continuation
-   * class added by xaringan. Finally, any <script>s in the slides area that
-   * aren't executed are commented out.
-   */
+  // Replace <script> tags in slides area to make them executable
   var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+    '.remark-slides-area .remark-slide-container script'
   );
   if (!scripts.length) return;
   for (var i = 0; i < scripts.length; i++) {
     var s = document.createElement('script');
     var code = document.createTextNode(scripts[i].textContent);
     s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
     scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-  var scriptsNotExecuted = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container.has-continuation script'
-  );
-  if (!scriptsNotExecuted.length) return;
-  for (var i = 0; i < scriptsNotExecuted.length; i++) {
-    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
-    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
   }
 })();
 (function() {

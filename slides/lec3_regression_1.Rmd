@@ -789,7 +789,7 @@ curve(dt(x, df = 18),
 
 
 ---
-# 参考文献
+# 参考文献列表
 
 ```{r, results='asis', echo=FALSE}
 PrintBibliography(bib)

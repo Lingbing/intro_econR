@@ -259,22 +259,22 @@ summary(mult.mod)
 &gt; 
 &gt; Residuals:
 &gt;     Min      1Q  Median      3Q     Max 
-&gt; -48.585 -10.210  -0.224   9.991  43.317 
+&gt; -48.374  -9.975  -0.604   9.314  43.925 
 &gt; 
 &gt; Coefficients:
-&gt;                 Estimate Std. Error t value Pr(&gt;|t|)    
-&gt; (Intercept)    686.97147    7.60573  90.323  &lt; 2e-16 ***
-&gt; STR             -1.11531    0.38227  -2.918  0.00372 ** 
-&gt; english         -0.64966    0.03949 -16.451  &lt; 2e-16 ***
-*&gt; directionNorth  -0.90003    1.92135  -0.468  0.63972    
-*&gt; directionSouth  -1.30945    1.97080  -0.664  0.50679    
-*&gt; directionWest   -0.54588    2.02428  -0.270  0.78755    
+&gt;                Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)    686.0251     7.5073  91.381  &lt; 2e-16 ***
+&gt; STR             -1.0942     0.3813  -2.870  0.00432 ** 
+&gt; english         -0.6539     0.0394 -16.595  &lt; 2e-16 ***
+*&gt; directionNorth   1.6699     1.9128   0.873  0.38315    
+*&gt; directionSouth  -1.9681     2.1119  -0.932  0.35195    
+*&gt; directionWest   -0.5638     1.9294  -0.292  0.77028    
 &gt; ---
 &gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 &gt; 
-&gt; Residual standard error: 14.51 on 414 degrees of freedom
-&gt; Multiple R-squared:  0.4271,	Adjusted R-squared:  0.4202 
-&gt; F-statistic: 61.73 on 5 and 414 DF,  p-value: &lt; 2.2e-16
+&gt; Residual standard error: 14.46 on 414 degrees of freedom
+&gt; Multiple R-squared:  0.4308,	Adjusted R-squared:  0.4239 
+&gt; F-statistic: 62.66 on 5 and 414 DF,  p-value: &lt; 2.2e-16
 ```
 ]
 
@@ -874,30 +874,20 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 (function() {
   "use strict"
-  /* Replace <script> tags in slides area to make them executable
-   *
-   * Runs after post-processing of markdown source into slides and replaces only
-   * <script>s on the last slide of continued slides using the .has-continuation
-   * class added by xaringan. Finally, any <script>s in the slides area that
-   * aren't executed are commented out.
-   */
+  // Replace <script> tags in slides area to make them executable
   var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+    '.remark-slides-area .remark-slide-container script'
   );
   if (!scripts.length) return;
   for (var i = 0; i < scripts.length; i++) {
     var s = document.createElement('script');
     var code = document.createTextNode(scripts[i].textContent);
     s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
     scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-  var scriptsNotExecuted = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container.has-continuation script'
-  );
-  if (!scriptsNotExecuted.length) return;
-  for (var i = 0; i < scriptsNotExecuted.length; i++) {
-    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
-    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
   }
 })();
 (function() {
