@@ -1,0 +1,1155 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={dplyr介绍},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{dplyr介绍}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{detach}\NormalTok{(}\StringTok{"package:dplyr"}\NormalTok{)}
+\KeywordTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(nycflights13)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{ux6570ux636e}{%
+\section{数据}\label{ux6570ux636e}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(nycflights13)}
+\KeywordTok{dim}\NormalTok{(flights)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 336776     19
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{data}\NormalTok{(flights)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{itemize}
+\item
+  所生成的数据格式是\texttt{tibble}。他是data.frame的现代版本，具有数据框的大多数属性，但是特别适用于大型数据集的存储和表示。
+\item
+  \url{http://tibble.tidyverse.org}
+\end{itemize}
+
+\hypertarget{dplyrux52a8ux4f5c}{%
+\section{dplyr动作}\label{dplyrux52a8ux4f5c}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  取行：\texttt{filter()}
+\item
+  排序: \texttt{arrange()}
+\item
+  取列: \texttt{select()}
+\item
+  生成新变量: \texttt{mutate()}
+\item
+  分组汇总: \texttt{group\_by()\ \%\textgreater{}\%\ summarise()}
+\item
+  动作连贯：\texttt{\%\textgreater{}\%}: 快捷键： ctrl + shift + M
+\end{enumerate}
+
+\hypertarget{filter}{%
+\section{filter()}\label{filter}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{filter}\NormalTok{(flights, month }\OperatorTok{==}\DecValTok{1}\NormalTok{, day }\OperatorTok{==}\StringTok{ }\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 842 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 832 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+base R 方法
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights[flights}\OperatorTok{$}\NormalTok{month }\OperatorTok{==}\StringTok{ }\DecValTok{1} \OperatorTok{&}\StringTok{ }\NormalTok{flights}\OperatorTok{$}\NormalTok{day }\OperatorTok{==}\StringTok{ }\DecValTok{1}\NormalTok{, ]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 842 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 832 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\hypertarget{arrange}{%
+\section{arrange()}\label{arrange}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{arrange}\NormalTok{(flights, year, month, day)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 336,766 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  倒序：descending order
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{arrange}\NormalTok{(flights, }\KeywordTok{desc}\NormalTok{(arr_delay))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     9      641            900      1301     1242           1530
+##  2  2013     6    15     1432           1935      1137     1607           2120
+##  3  2013     1    10     1121           1635      1126     1239           1810
+##  4  2013     9    20     1139           1845      1014     1457           2210
+##  5  2013     7    22      845           1600      1005     1044           1815
+##  6  2013     4    10     1100           1900       960     1342           2211
+##  7  2013     3    17     2321            810       911      135           1020
+##  8  2013     7    22     2257            759       898      121           1026
+##  9  2013    12     5      756           1700       896     1058           2020
+## 10  2013     5     3     1133           2055       878     1250           2215
+## # ... with 336,766 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\hypertarget{ux53d6ux5217}{%
+\section{取列}\label{ux53d6ux5217}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select}\NormalTok{(flights, year, month, day)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 3
+##     year month   day
+##    <int> <int> <int>
+##  1  2013     1     1
+##  2  2013     1     1
+##  3  2013     1     1
+##  4  2013     1     1
+##  5  2013     1     1
+##  6  2013     1     1
+##  7  2013     1     1
+##  8  2013     1     1
+##  9  2013     1     1
+## 10  2013     1     1
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select}\NormalTok{(flights, year}\OperatorTok{:}\NormalTok{day)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 3
+##     year month   day
+##    <int> <int> <int>
+##  1  2013     1     1
+##  2  2013     1     1
+##  3  2013     1     1
+##  4  2013     1     1
+##  5  2013     1     1
+##  6  2013     1     1
+##  7  2013     1     1
+##  8  2013     1     1
+##  9  2013     1     1
+## 10  2013     1     1
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select}\NormalTok{(flights, }\OperatorTok{-}\NormalTok{(year}\OperatorTok{:}\NormalTok{day))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 16
+##    dep_time sched_dep_time dep_delay arr_time sched_arr_time arr_delay carrier
+##       <int>          <int>     <dbl>    <int>          <int>     <dbl> <chr>  
+##  1      517            515         2      830            819        11 UA     
+##  2      533            529         4      850            830        20 UA     
+##  3      542            540         2      923            850        33 AA     
+##  4      544            545        -1     1004           1022       -18 B6     
+##  5      554            600        -6      812            837       -25 DL     
+##  6      554            558        -4      740            728        12 UA     
+##  7      555            600        -5      913            854        19 B6     
+##  8      557            600        -3      709            723       -14 EV     
+##  9      557            600        -3      838            846        -8 B6     
+## 10      558            600        -2      753            745         8 AA     
+## # ... with 336,766 more rows, and 9 more variables: flight <int>,
+## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
+## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  select可以配合\texttt{starts\_with()} \texttt{ends\_with()},
+  \texttt{matches()}, \texttt{contains()}使用。
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(}\KeywordTok{contains}\NormalTok{(}\StringTok{'dep'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 3
+##    dep_time sched_dep_time dep_delay
+##       <int>          <int>     <dbl>
+##  1      517            515         2
+##  2      533            529         4
+##  3      542            540         2
+##  4      544            545        -1
+##  5      554            600        -6
+##  6      554            558        -4
+##  7      555            600        -5
+##  8      557            600        -3
+##  9      557            600        -3
+## 10      558            600        -2
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\hypertarget{ux91cdux547dux540d}{%
+\section{重命名}\label{ux91cdux547dux540d}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select}\NormalTok{(flights, }\DataTypeTok{tail_num =}\NormalTok{ tailnum)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 1
+##    tail_num
+##    <chr>   
+##  1 N14228  
+##  2 N24211  
+##  3 N619AA  
+##  4 N804JB  
+##  5 N668DN  
+##  6 N39463  
+##  7 N516JB  
+##  8 N829AS  
+##  9 N593JB  
+## 10 N3ALAA  
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{rename}\NormalTok{(flights, }\DataTypeTok{tail_num =}\NormalTok{ tailnum)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 336,766 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tail_num <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\hypertarget{ux589eux6dfbux65b0ux53d8ux91cf}{%
+\section{增添新变量}\label{ux589eux6dfbux65b0ux53d8ux91cf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mutate}\NormalTok{(flights,}
+  \DataTypeTok{gain =}\NormalTok{ arr_delay }\OperatorTok{-}\StringTok{ }\NormalTok{dep_delay,}
+  \DataTypeTok{speed =}\NormalTok{ distance }\OperatorTok{/}\StringTok{ }\NormalTok{air_time }\OperatorTok{*}\StringTok{ }\DecValTok{60}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 21
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 336,766 more rows, and 13 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>,
+## #   gain <dbl>, speed <dbl>
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  实时变量生成
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mutate}\NormalTok{(flights,}
+  \DataTypeTok{gain =}\NormalTok{ arr_delay }\OperatorTok{-}\StringTok{ }\NormalTok{dep_delay,}
+  \DataTypeTok{gain_per_hour =}\NormalTok{ gain }\OperatorTok{/}\StringTok{ }\NormalTok{(air_time }\OperatorTok{/}\StringTok{ }\DecValTok{60}\NormalTok{)}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 21
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ... with 336,766 more rows, and 13 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>,
+## #   gain <dbl>, gain_per_hour <dbl>
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  只保留新变量
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{transmute}\NormalTok{(flights,}
+  \DataTypeTok{gain =}\NormalTok{ arr_delay }\OperatorTok{-}\StringTok{ }\NormalTok{dep_delay,}
+  \DataTypeTok{gain_per_hour =}\NormalTok{ gain }\OperatorTok{/}\StringTok{ }\NormalTok{(air_time }\OperatorTok{/}\StringTok{ }\DecValTok{60}\NormalTok{)}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 2
+##     gain gain_per_hour
+##    <dbl>         <dbl>
+##  1     9          2.38
+##  2    16          4.23
+##  3    31         11.6 
+##  4   -17         -5.57
+##  5   -19         -9.83
+##  6    16          6.4 
+##  7    24          9.11
+##  8   -11        -12.5 
+##  9    -5         -2.14
+## 10    10          4.35
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\hypertarget{ux6c47ux603b}{%
+\section{汇总}\label{ux6c47ux603b}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{summarise}\NormalTok{(flights,}
+  \DataTypeTok{delay =} \KeywordTok{mean}\NormalTok{(dep_delay, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{)}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 1 x 1
+##   delay
+##   <dbl>
+## 1  12.6
+\end{verbatim}
+
+\begin{itemize}
+\item
+  好像很多余？
+\item
+  group\_by() 为 summarise插上翅膀。稍后单独展示。
+\end{itemize}
+
+\hypertarget{ux62bdux6837}{%
+\section{抽样}\label{ux62bdux6837}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{sample_n}\NormalTok{(flights, }\DecValTok{10}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 10 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     4     2     2310           2036       154      119           2258
+##  2  2013     1     2     2054           2040        14     2343           2323
+##  3  2013     4    11      759            802        -3     1051           1125
+##  4  2013    12    24     1158           1155         3     1420           1417
+##  5  2013     1    30     1658           1548        70     1958           1830
+##  6  2013     7    17      700            700         0      924            951
+##  7  2013     8     7     1705           1702         3     1953           2003
+##  8  2013     6    17     2236           2110        86       39           2245
+##  9  2013    12    27     1456           1500        -4     1759           1805
+## 10  2013     9    28     1658           1715       -17     1755           1830
+## # ... with 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
+## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
+## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  按比例抽样
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{sample_frac}\NormalTok{(flights, }\FloatTok{0.01}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 3,368 x 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     3    13      924            929        -5     1051           1044
+##  2  2013     2     4     1210           1159        11     1458           1431
+##  3  2013     7    19     1605           1555        10     1813           1739
+##  4  2013     4    22     1819           1459       200     2037           1718
+##  5  2013     5    27     1552           1559        -7     1713           1745
+##  6  2013     1     9     1456           1500        -4     1655           1655
+##  7  2013     6    29     1324           1325        -1     1516           1520
+##  8  2013     5     4     1338           1344        -6     1607           1621
+##  9  2013     4     2      706            708        -2      958           1008
+## 10  2013     3    13      854            805        49     1146           1052
+## # ... with 3,358 more rows, and 11 more variables: arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>, dest <chr>,
+## #   air_time <dbl>, distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\hypertarget{ux5206ux7ec4}{%
+\section{分组}\label{ux5206ux7ec4}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{by_tailnum <-}\StringTok{ }\KeywordTok{group_by}\NormalTok{(flights, tailnum)}
+\NormalTok{delay <-}\StringTok{ }\KeywordTok{summarise}\NormalTok{(by_tailnum,}
+  \DataTypeTok{count =} \KeywordTok{n}\NormalTok{(),}
+  \DataTypeTok{dist =} \KeywordTok{mean}\NormalTok{(distance, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{),}
+  \DataTypeTok{delay =} \KeywordTok{mean}\NormalTok{(arr_delay, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{))}
+\NormalTok{delay <-}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{filter}\NormalTok{(delay, count }\OperatorTok{>}\StringTok{ }\DecValTok{20}\NormalTok{, dist }\OperatorTok{<}\StringTok{ }\DecValTok{2000}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+使用连贯动作
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{delay <-}\StringTok{ }\NormalTok{flights }\OperatorTok{%>%}\StringTok{ }
+\StringTok{    }\KeywordTok{group_by}\NormalTok{(tailnum) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{    }\KeywordTok{summarise}\NormalTok{(}\DataTypeTok{count =} \KeywordTok{n}\NormalTok{(),}
+              \DataTypeTok{dist =} \KeywordTok{mean}\NormalTok{(distance, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{),}
+              \DataTypeTok{delay =} \KeywordTok{mean}\NormalTok{(arr_delay, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{)) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{    }\KeywordTok{filter}\NormalTok{(count }\OperatorTok{>}\StringTok{ }\DecValTok{20}\NormalTok{, dist }\OperatorTok{<}\StringTok{ }\DecValTok{2000}\NormalTok{)}
+\NormalTok{delay}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2,962 x 4
+##    tailnum count  dist  delay
+##    <chr>   <int> <dbl>  <dbl>
+##  1 N0EGMQ    371  676.  9.98 
+##  2 N10156    153  758. 12.7  
+##  3 N102UW     48  536.  2.94 
+##  4 N103US     46  535. -6.93 
+##  5 N104UW     47  535.  1.80 
+##  6 N10575    289  520. 20.7  
+##  7 N105UW     45  525. -0.267
+##  8 N107US     41  529. -5.73 
+##  9 N108UW     60  534. -1.25 
+## 10 N109UW     48  536. -2.52 
+## # ... with 2,952 more rows
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  根据连贯操作很容易看懂代码
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(year, month, day) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{select}\NormalTok{(arr_delay, dep_delay) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{summarise}\NormalTok{(}
+    \DataTypeTok{arr =} \KeywordTok{mean}\NormalTok{(arr_delay, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{),}
+    \DataTypeTok{dep =} \KeywordTok{mean}\NormalTok{(dep_delay, }\DataTypeTok{na.rm =} \OtherTok{TRUE}\NormalTok{)}
+\NormalTok{  ) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(arr }\OperatorTok{>}\StringTok{ }\DecValTok{30} \OperatorTok{|}\StringTok{ }\NormalTok{dep }\OperatorTok{>}\StringTok{ }\DecValTok{30}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Adding missing grouping variables: `year`, `month`, `day`
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 49 x 5
+## # Groups:   year, month [11]
+##     year month   day   arr   dep
+##    <int> <int> <int> <dbl> <dbl>
+##  1  2013     1    16  34.2  24.6
+##  2  2013     1    31  32.6  28.7
+##  3  2013     2    11  36.3  39.1
+##  4  2013     2    27  31.3  37.8
+##  5  2013     3     8  85.9  83.5
+##  6  2013     3    18  41.3  30.1
+##  7  2013     4    10  38.4  33.0
+##  8  2013     4    12  36.0  34.8
+##  9  2013     4    18  36.0  34.9
+## 10  2013     4    19  47.9  46.1
+## # ... with 39 more rows
+\end{verbatim}
+
+\hypertarget{ux591aux53d8ux91cfux6c47ux603b}{%
+\section{多变量汇总}\label{ux591aux53d8ux91cfux6c47ux603b}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{daily <-}\StringTok{ }\KeywordTok{group_by}\NormalTok{(flights, year, month, day)}
+\NormalTok{(per_day   <-}\StringTok{ }\KeywordTok{summarise}\NormalTok{(daily, }\DataTypeTok{flights =} \KeywordTok{n}\NormalTok{()))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 365 x 4
+## # Groups:   year, month [12]
+##     year month   day flights
+##    <int> <int> <int>   <int>
+##  1  2013     1     1     842
+##  2  2013     1     2     943
+##  3  2013     1     3     914
+##  4  2013     1     4     915
+##  5  2013     1     5     720
+##  6  2013     1     6     832
+##  7  2013     1     7     933
+##  8  2013     1     8     899
+##  9  2013     1     9     902
+## 10  2013     1    10     932
+## # ... with 355 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(per_month <-}\StringTok{ }\KeywordTok{summarise}\NormalTok{(per_day, }\DataTypeTok{flights =} \KeywordTok{sum}\NormalTok{(flights)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 12 x 3
+## # Groups:   year [1]
+##     year month flights
+##    <int> <int>   <int>
+##  1  2013     1   27004
+##  2  2013     2   24951
+##  3  2013     3   28834
+##  4  2013     4   28330
+##  5  2013     5   28796
+##  6  2013     6   28243
+##  7  2013     7   29425
+##  8  2013     8   29327
+##  9  2013     9   27574
+## 10  2013    10   28889
+## 11  2013    11   27268
+## 12  2013    12   28135
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(per_year  <-}\StringTok{ }\KeywordTok{summarise}\NormalTok{(per_month, }\DataTypeTok{flights =} \KeywordTok{sum}\NormalTok{(flights)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 1 x 2
+##    year flights
+##   <int>   <int>
+## 1  2013  336776
+\end{verbatim}
+
+\hypertarget{ux591aux8868ux5408ux5e76}{%
+\section{多表合并}\label{ux591aux8868ux5408ux5e76}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights2 <-}\StringTok{ }\NormalTok{flights }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(year}\OperatorTok{:}\NormalTok{day, hour, origin, dest, tailnum, carrier)}
+
+\NormalTok{flights2 }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{left_join}\NormalTok{(airlines)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "carrier"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 9
+##     year month   day  hour origin dest  tailnum carrier name                    
+##    <int> <int> <int> <dbl> <chr>  <chr> <chr>   <chr>   <chr>                   
+##  1  2013     1     1     5 EWR    IAH   N14228  UA      United Air Lines Inc.   
+##  2  2013     1     1     5 LGA    IAH   N24211  UA      United Air Lines Inc.   
+##  3  2013     1     1     5 JFK    MIA   N619AA  AA      American Airlines Inc.  
+##  4  2013     1     1     5 JFK    BQN   N804JB  B6      JetBlue Airways         
+##  5  2013     1     1     6 LGA    ATL   N668DN  DL      Delta Air Lines Inc.    
+##  6  2013     1     1     5 EWR    ORD   N39463  UA      United Air Lines Inc.   
+##  7  2013     1     1     6 EWR    FLL   N516JB  B6      JetBlue Airways         
+##  8  2013     1     1     6 LGA    IAD   N829AS  EV      ExpressJet Airlines Inc.
+##  9  2013     1     1     6 JFK    MCO   N593JB  B6      JetBlue Airways         
+## 10  2013     1     1     6 LGA    ORD   N3ALAA  AA      American Airlines Inc.  
+## # ... with 336,766 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{data}\NormalTok{(}\StringTok{"weather"}\NormalTok{)}
+\NormalTok{weather}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 26,115 x 15
+##    origin  year month   day  hour  temp  dewp humid wind_dir wind_speed
+##    <chr>  <int> <int> <int> <int> <dbl> <dbl> <dbl>    <dbl>      <dbl>
+##  1 EWR     2013     1     1     1  39.0  26.1  59.4      270      10.4 
+##  2 EWR     2013     1     1     2  39.0  27.0  61.6      250       8.06
+##  3 EWR     2013     1     1     3  39.0  28.0  64.4      240      11.5 
+##  4 EWR     2013     1     1     4  39.9  28.0  62.2      250      12.7 
+##  5 EWR     2013     1     1     5  39.0  28.0  64.4      260      12.7 
+##  6 EWR     2013     1     1     6  37.9  28.0  67.2      240      11.5 
+##  7 EWR     2013     1     1     7  39.0  28.0  64.4      240      15.0 
+##  8 EWR     2013     1     1     8  39.9  28.0  62.2      250      10.4 
+##  9 EWR     2013     1     1     9  39.9  28.0  62.2      260      15.0 
+## 10 EWR     2013     1     1    10  41    28.0  59.6      260      13.8 
+## # ... with 26,105 more rows, and 5 more variables: wind_gust <dbl>,
+## #   precip <dbl>, pressure <dbl>, visib <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(weather)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = c("year", "month", "day", "hour", "origin")
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 18
+##     year month   day  hour origin dest  tailnum carrier  temp  dewp humid
+##    <int> <int> <int> <dbl> <chr>  <chr> <chr>   <chr>   <dbl> <dbl> <dbl>
+##  1  2013     1     1     5 EWR    IAH   N14228  UA       39.0  28.0  64.4
+##  2  2013     1     1     5 LGA    IAH   N24211  UA       39.9  25.0  54.8
+##  3  2013     1     1     5 JFK    MIA   N619AA  AA       39.0  27.0  61.6
+##  4  2013     1     1     5 JFK    BQN   N804JB  B6       39.0  27.0  61.6
+##  5  2013     1     1     6 LGA    ATL   N668DN  DL       39.9  25.0  54.8
+##  6  2013     1     1     5 EWR    ORD   N39463  UA       39.0  28.0  64.4
+##  7  2013     1     1     6 EWR    FLL   N516JB  B6       37.9  28.0  67.2
+##  8  2013     1     1     6 LGA    IAD   N829AS  EV       39.9  25.0  54.8
+##  9  2013     1     1     6 JFK    MCO   N593JB  B6       37.9  27.0  64.3
+## 10  2013     1     1     6 LGA    ORD   N3ALAA  AA       39.9  25.0  54.8
+## # ... with 336,766 more rows, and 7 more variables: wind_dir <dbl>,
+## #   wind_speed <dbl>, wind_gust <dbl>, precip <dbl>, pressure <dbl>,
+## #   visib <dbl>, time_hour <dttm>
+\end{verbatim}
+
+\hypertarget{ux7528ux7279ux5b9aux53d8ux91cfux5408ux5e76ux4ea4ux96c6}{%
+\section{用特定变量合并交集}\label{ux7528ux7279ux5b9aux53d8ux91cfux5408ux5e76ux4ea4ux96c6}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{planes}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 3,322 x 9
+##    tailnum  year type          manufacturer   model  engines seats speed engine 
+##    <chr>   <int> <chr>         <chr>          <chr>    <int> <int> <int> <chr>  
+##  1 N10156   2004 Fixed wing m~ EMBRAER        EMB-1~       2    55    NA Turbo-~
+##  2 N102UW   1998 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  3 N103US   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  4 N104UW   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  5 N10575   2002 Fixed wing m~ EMBRAER        EMB-1~       2    55    NA Turbo-~
+##  6 N105UW   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  7 N107US   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  8 N108UW   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+##  9 N109UW   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+## 10 N110UW   1999 Fixed wing m~ AIRBUS INDUST~ A320-~       2   182    NA Turbo-~
+## # ... with 3,312 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(planes, }\DataTypeTok{by =} \StringTok{"tailnum"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 16
+##    year.x month   day  hour origin dest  tailnum carrier year.y type 
+##     <int> <int> <int> <dbl> <chr>  <chr> <chr>   <chr>    <int> <chr>
+##  1   2013     1     1     5 EWR    IAH   N14228  UA        1999 Fixe~
+##  2   2013     1     1     5 LGA    IAH   N24211  UA        1998 Fixe~
+##  3   2013     1     1     5 JFK    MIA   N619AA  AA        1990 Fixe~
+##  4   2013     1     1     5 JFK    BQN   N804JB  B6        2012 Fixe~
+##  5   2013     1     1     6 LGA    ATL   N668DN  DL        1991 Fixe~
+##  6   2013     1     1     5 EWR    ORD   N39463  UA        2012 Fixe~
+##  7   2013     1     1     6 EWR    FLL   N516JB  B6        2000 Fixe~
+##  8   2013     1     1     6 LGA    IAD   N829AS  EV        1998 Fixe~
+##  9   2013     1     1     6 JFK    MCO   N593JB  B6        2004 Fixe~
+## 10   2013     1     1     6 LGA    ORD   N3ALAA  AA          NA <NA> 
+## # ... with 336,766 more rows, and 6 more variables: manufacturer <chr>,
+## #   model <chr>, engines <int>, seats <int>, speed <int>, engine <chr>
+\end{verbatim}
+
+\hypertarget{ux5408ux5e76ux53d8ux91cfux540dux79f0ux4e0dux540c}{%
+\section{合并变量名称不同？}\label{ux5408ux5e76ux53d8ux91cfux540dux79f0ux4e0dux540c}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{airports}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 1,458 x 8
+##    faa   name                       lat    lon   alt    tz dst   tzone          
+##    <chr> <chr>                    <dbl>  <dbl> <dbl> <dbl> <chr> <chr>          
+##  1 04G   Lansdowne Airport         41.1  -80.6  1044    -5 A     America/New_Yo~
+##  2 06A   Moton Field Municipal A~  32.5  -85.7   264    -6 A     America/Chicago
+##  3 06C   Schaumburg Regional       42.0  -88.1   801    -6 A     America/Chicago
+##  4 06N   Randall Airport           41.4  -74.4   523    -5 A     America/New_Yo~
+##  5 09J   Jekyll Island Airport     31.1  -81.4    11    -5 A     America/New_Yo~
+##  6 0A9   Elizabethton Municipal ~  36.4  -82.2  1593    -5 A     America/New_Yo~
+##  7 0G6   Williams County Airport   41.5  -84.5   730    -5 A     America/New_Yo~
+##  8 0G7   Finger Lakes Regional A~  42.9  -76.8   492    -5 A     America/New_Yo~
+##  9 0P2   Shoestring Aviation Air~  39.8  -76.6  1000    -5 U     America/New_Yo~
+## 10 0S9   Jefferson County Intl     48.1 -123.    108    -8 A     America/Los_An~
+## # ... with 1,448 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(airports, }\KeywordTok{c}\NormalTok{(}\StringTok{"dest"}\NormalTok{ =}\StringTok{ "faa"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 15
+##     year month   day  hour origin dest  tailnum carrier name    lat   lon   alt
+##    <int> <int> <int> <dbl> <chr>  <chr> <chr>   <chr>   <chr> <dbl> <dbl> <dbl>
+##  1  2013     1     1     5 EWR    IAH   N14228  UA      Geor~  30.0 -95.3    97
+##  2  2013     1     1     5 LGA    IAH   N24211  UA      Geor~  30.0 -95.3    97
+##  3  2013     1     1     5 JFK    MIA   N619AA  AA      Miam~  25.8 -80.3     8
+##  4  2013     1     1     5 JFK    BQN   N804JB  B6      <NA>   NA    NA      NA
+##  5  2013     1     1     6 LGA    ATL   N668DN  DL      Hart~  33.6 -84.4  1026
+##  6  2013     1     1     5 EWR    ORD   N39463  UA      Chic~  42.0 -87.9   668
+##  7  2013     1     1     6 EWR    FLL   N516JB  B6      Fort~  26.1 -80.2     9
+##  8  2013     1     1     6 LGA    IAD   N829AS  EV      Wash~  38.9 -77.5   313
+##  9  2013     1     1     6 JFK    MCO   N593JB  B6      Orla~  28.4 -81.3    96
+## 10  2013     1     1     6 LGA    ORD   N3ALAA  AA      Chic~  42.0 -87.9   668
+## # ... with 336,766 more rows, and 3 more variables: tz <dbl>, dst <chr>,
+## #   tzone <chr>
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{flights2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(airports, }\KeywordTok{c}\NormalTok{(}\StringTok{"origin"}\NormalTok{ =}\StringTok{ "faa"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 336,776 x 15
+##     year month   day  hour origin dest  tailnum carrier name    lat   lon   alt
+##    <int> <int> <int> <dbl> <chr>  <chr> <chr>   <chr>   <chr> <dbl> <dbl> <dbl>
+##  1  2013     1     1     5 EWR    IAH   N14228  UA      Newa~  40.7 -74.2    18
+##  2  2013     1     1     5 LGA    IAH   N24211  UA      La G~  40.8 -73.9    22
+##  3  2013     1     1     5 JFK    MIA   N619AA  AA      John~  40.6 -73.8    13
+##  4  2013     1     1     5 JFK    BQN   N804JB  B6      John~  40.6 -73.8    13
+##  5  2013     1     1     6 LGA    ATL   N668DN  DL      La G~  40.8 -73.9    22
+##  6  2013     1     1     5 EWR    ORD   N39463  UA      Newa~  40.7 -74.2    18
+##  7  2013     1     1     6 EWR    FLL   N516JB  B6      Newa~  40.7 -74.2    18
+##  8  2013     1     1     6 LGA    IAD   N829AS  EV      La G~  40.8 -73.9    22
+##  9  2013     1     1     6 JFK    MCO   N593JB  B6      John~  40.6 -73.8    13
+## 10  2013     1     1     6 LGA    ORD   N3ALAA  AA      La G~  40.8 -73.9    22
+## # ... with 336,766 more rows, and 3 more variables: tz <dbl>, dst <chr>,
+## #   tzone <chr>
+\end{verbatim}
+
+\hypertarget{ux56dbux79cdux5408ux5e76joinux65b9ux5f0f}{%
+\section{四种合并（join）方式}\label{ux56dbux79cdux5408ux5e76joinux65b9ux5f0f}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df1 <-}\StringTok{ }\KeywordTok{tibble}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{), }\DataTypeTok{y =} \DecValTok{2}\OperatorTok{:}\DecValTok{1}\NormalTok{)}
+\NormalTok{df2 <-}\StringTok{ }\KeywordTok{tibble}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{3}\NormalTok{), }\DataTypeTok{a =} \DecValTok{10}\NormalTok{, }\DataTypeTok{b =} \StringTok{"a"}\NormalTok{)}
+\NormalTok{df1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2 x 2
+##       x     y
+##   <dbl> <int>
+## 1     1     2
+## 2     2     1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2 x 3
+##       x     a b    
+##   <dbl> <dbl> <chr>
+## 1     1    10 a    
+## 2     3    10 a
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \texttt{inner\_join(x,\ y)}: xy交集
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{inner_join}\NormalTok{(df2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "x"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 1 x 4
+##       x     y     a b    
+##   <dbl> <int> <dbl> <chr>
+## 1     1     2    10 a
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  \texttt{left\_join(x,\ y)}, 保留x的所有观测。最为常见
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(df2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "x"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 2 x 4
+##       x     y     a b    
+##   <dbl> <int> <dbl> <chr>
+## 1     1     2    10 a    
+## 2     2     1    NA <NA>
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  \texttt{right\_join()}，保留y中的所有观测，等同于\texttt{left\_join(y,\ x)},但列的排序稍有不同。
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{right_join}\NormalTok{(df2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "x"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 2 x 4
+##       x     y     a b    
+##   <dbl> <int> <dbl> <chr>
+## 1     1     2    10 a    
+## 2     3    NA    10 a
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(df1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "x"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 2 x 4
+##       x     a b         y
+##   <dbl> <dbl> <chr> <int>
+## 1     1    10 a         2
+## 2     3    10 a        NA
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  \texttt{full\_join()} 保留x, y所有观测，用NA填充。
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{full_join}\NormalTok{(df2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = "x"
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 3 x 4
+##       x     y     a b    
+##   <dbl> <int> <dbl> <chr>
+## 1     1     2    10 a    
+## 2     2     1    NA <NA> 
+## 3     3    NA    10 a
+\end{verbatim}
+
+\end{document}

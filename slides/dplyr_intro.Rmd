@@ -1,0 +1,400 @@
+---
+title: "dplyr介绍"
+output:
+  html_document: 
+    toc: yes
+  pdf_document: default
+---
+
+```{r}
+detach("package:dplyr")
+library(dplyr)
+library(nycflights13)
+```
+
+# 数据
+```{r}
+library(nycflights13)
+dim(flights)
+data(flights)
+flights
+class(flights)
+```
+
+- 所生成的数据格式是`tibble`。他是data.frame的现代版本，具有数据框的大多数属性，但是特别适用于大型数据集的存储和表示。
+
+- http://tibble.tidyverse.org
+
+# dplyr动作
+1. 取行：`filter()`
+2. 排序: `arrange()`
+3. 取列: `select()`
+4. 生成新变量: `mutate()`
+5. 分组汇总: `group_by() %>% summarise()`
+6. 动作连贯：` %>% `: 快捷键： ctrl + shift + M 
+
+# filter()
+```{r}
+filter(flights, month ==2, day == 2, carrier == "UA", origin == "JFK")
+flights %>% 
+  filter(month == 2, day == 3) %>% 
+  filter(carrier == "UA") %>% 
+  filter(origin == "JFK")
+```
+
+base R 方法
+```{r}
+flights[flights$month == 1 & flights$day == 1, ]
+```
+
+# arrange()
+```{r}
+arrange(flights, des(dep_delay))
+```
+
+- 倒序：descending order
+```{r}
+# arrange(flights, desc(arr_delay))
+flights %>% 
+  filter(month ==1, day == 1) %>% 
+  select(dep_delay, carrier, origin, dest) %>% 
+  arrange(desc(dep_delay)) 
+```
+
+# 取列
+```{r}
+select(flights, year, month, day, arr_delay, dep_delay)
+```
+
+```{r}
+select(flights, contains("delay"))
+```
+
+```{r}
+select(flights, -(year:day))
+```
+
+- select可以配合`starts_with()` `ends_with()`, `matches()`, `contains()`使用。
+```{r}
+flights 
+```
+
+# 重命名
+```{r}
+select(flights, tail_num = tailnum)
+```
+
+```{r}
+rename(flights, tail_num = tailnum)
+```
+
+
+# 增添新变量
+```{r}
+mutate(flights,
+  gain = arr_delay - dep_delay,
+  speed = distance / air_time * 60
+)
+flights %>% 
+  mutate(gain = arr_delay - dep_delay,
+  speed = distance / air_time * 60) %>% 
+  filter(gain < 0) %>% 
+  arrange(gain) %>% 
+  filter(month == 12) %>% 
+```
+
+- 实时变量生成
+
+```{r}
+mutate(flights,
+  gain = arr_delay - dep_delay,
+  gain_per_hour = gain / (air_time / 60)
+) %>% select(gain, gain_per_hour)
+```
+
+- 只保留新变量
+```{r}
+transmute(flights,
+  gain = arr_delay - dep_delay,
+  gain_per_hour = gain / (air_time / 60)
+)
+```
+
+
+# 汇总
+```{r}
+# summarise(flights,
+#   delay = mean(dep_delay, na.rm = TRUE)
+# )
+mean(flights$dep_delay, na.rm = T)
+```
+
+
+- 好像很多余？
+
+- group_by() 为 summarise插上翅膀。稍后单独展示。
+
+
+# 抽样
+
+```{r}
+sample_n(flights, 10)
+```
+
+
+- 按比例抽样
+```{r}
+sample_frac(flights, 0.01)
+```
+
+# 分组
+
+```{r}
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(count = n(),
+            ave_arr_delay = mean(arr_delay, na.rm = T),
+            ave_dep_delay = mean(dep_delay, na.rm = T)) %>% 
+  arrange(ave_arr_delay) %>% 
+  filter(ave_arr_delay < 0)
+
+
+# delay <- dplyr::filter(delay, count > 20, dist < 2000)
+```
+
+使用连贯动作
+```{r}
+delay <- flights %>% 
+    group_by(tailnum) %>% 
+    summarise(count = n(),
+              dist = mean(distance, na.rm = TRUE),
+              delay = mean(arr_delay, na.rm = TRUE)) %>% 
+    filter(count > 20, dist < 2000)
+delay
+```
+
+- 根据连贯操作很容易看懂代码
+
+```{r}
+flights %>%
+  group_by(year, month, day) %>%
+  select(arr_delay, dep_delay) %>%
+  summarise(
+    arr = mean(arr_delay, na.rm = TRUE),
+    dep = mean(dep_delay, na.rm = TRUE)
+  ) %>%
+  filter(arr > 30 | dep > 30)
+```
+
+
+# 多变量汇总
+```{r}
+
+flights %>% 
+  group_by(carrier, month) %>% 
+  summarise(monthly = n()) %>% 
+  arrange(monthly)
+  
+# (per_day   <- summarise(daily, flights = n()))
+# (per_month <- summarise(per_day, flights = sum(flights)))
+# (per_year  <- summarise(per_month, flights = sum(flights)))
+```
+```{r}
+
+flights %>% 
+  group_by(dest) %>% 
+  summarise(count = n(),
+            dep_delay = mean(dep_delay, na.rm = T),
+            arr_delay = mean(arr_delay, na.rm = T)) %>% 
+  arrange(desc(dep_delay))
+
+```
+
+
+
+# 多表合并
+```{r}
+flights2 <- flights %>% select(year:day, hour, origin, dest, tailnum, carrier)
+flights2
+
+airlines
+flights2 %>% 
+  left_join(airlines)
+```
+```{r}
+data("weather")
+weather
+flights2 %>% left_join(weather)
+```
+
+
+# 用特定变量合并交集
+```{r}
+planes
+flights2 %>% 
+  left_join(planes, by = "tailnum") %>% 
+
+```
+
+# 合并变量名称不同？
+```{r}
+airports
+flights2 %>% left_join(airports, c("dest" = "faa"))
+flights2 %>% left_join(airports, c("origin" = "faa"))
+```
+
+# 四种合并（join）方式
+```{r}
+df1 <- tibble(x = c(1, 2), y = 2:1)
+df2 <- tibble(x = c(1, 3), a = 10, b = "a")
+df1
+df2
+```
+1. `inner_join(x, y)`: xy交集
+
+```{r}
+df1 %>% inner_join(df2)
+```
+2. `left_join(x, y)`, 保留x的所有观测。最为常见
+```{r}
+df1 %>% left_join(df2)
+```
+
+3. `right_join(x, y)`，保留y中的所有观测，等同于`left_join(y, x)`,但列的排序稍有不同。
+```{r}
+df1 %>% right_join(df2)
+df2 %>% left_join(df1)
+```
+4. `full_join(x, y)` 保留x, y所有观测，用NA填充。
+```{r}
+df1 %>% full_join(df2)
+```
+
+# 与观测有关的join
+1. `semi_join(x, y)`: 保留y中有匹配的x观测值
+2. `anti_join(x, y)`：将x中与y有匹配的数据全部丢弃
+```{r}
+flights %>% 
+  anti_join(planes, by = "tailnum")%>% 
+  count(tailnum, sort = TRUE)
+```
+
+```{r}
+df1 <- tibble(x = c(1, 1, 3, 4), y = 1:4)
+df2 <- tibble(x = c(1, 1, 2), z = c("a", "b", "a"))
+df1
+df2
+df1 %>% nrow()
+df1 %>% inner_join(df2, by = "x")
+df1 %>% semi_join(df2, by = "x")
+```
+
+# 集合操作
+- `intersect(x, y)`: x和y交集
+- `union(x, y)`: x和y并集
+- `setdiff(x, y)`: x中y的补集
+```{r}
+(df1 <- tibble(x = 1:2, y = c(1L, 1L)))
+(df2 <- tibble(x = 1:2, y = 1:2))
+intersect(df1, df2)
+union(df1, df2)
+setdiff(df1, df2)
+setdiff(df2, df1)
+```
+
+# 窗口函数 (window functions)
+
+与mutate和filter结合使用，窗口函数可以大有作为
+
+```{r}
+library(Lahman)
+batting <- Lahman::Batting %>%
+  as_tibble() %>%
+  select(playerID, yearID, teamID, G, AB:H) %>%
+  arrange(playerID, yearID, teamID) %>%
+  semi_join(Lahman::AwardsPlayers, by = "playerID")
+
+players <- batting %>% group_by(playerID)
+players
+```
+
+
+
+```{r}
+# For each player, find the two years with most hits
+filter(players, min_rank(desc(H)) <= 2 & H > 0)
+# Within each player, rank each year by the number of games played
+mutate(players, G_rank = min_rank(G))
+# For each player, find every year that was better than the previous year
+filter(players, G > lag(G))
+# For each player, compute avg change in games played per year
+mutate(players, G_change = (G - lag(G)) / (yearID - lag(yearID)))
+
+# For each player, find all where they played more games than average
+filter(players, G > mean(G))
+# For each, player compute a z score based on number of games played]
+mutate(players, G_z = (G - mean(G)) / sd(G))
+```
+
+- 窗口函数可以让我们在行和列操作时更加自如，它们主要分为5种，先介绍两种
+1. 排序和计算顺序：row_number(), min_rank(), dense_rank(), cume_dist(), percent_rank(), and ntile(). 
+2. 滞后和领先操作： lead() and lag()
+
+
+
+# 排序
+```{r}
+x <- c(1, 1, 2, 2, 2)
+x
+row_number(x)
+
+min_rank(x)
+
+dense_rank(x)
+
+cume_dist(x)
+```
+
+
+```{r}
+# select the top 10% of records within each group
+filter(players, cume_dist(desc(G)) < 0.1)
+```
+
+- ntile() 将变量数据分为相等的n块。
+```{r}
+by_team_player <- group_by(batting, teamID, playerID)
+by_team <- summarise(by_team_player, G = sum(G))
+by_team_quartile <- group_by(by_team, quartile = ntile(G, 5))
+summarise(by_team_quartile, mean(G))
+```
+
+
+# 领先滞后
+```{r}
+x <- 1:5
+lead(x)
+lag(x)
+```
+
+
+```{r}
+# Compute the relative change in games played
+mutate(players, G_delta = G - lag(G))
+# Find when a player changed teams
+filter(players, teamID != lag(teamID))
+```
+
+
+- 自学后三种动作，现实中用的不太多，了解滞后，可以需要的时候再查阅帮助文档。但以上操作应该烂熟于胸。
+
+
+
+
+
+
+
+
+
+
+

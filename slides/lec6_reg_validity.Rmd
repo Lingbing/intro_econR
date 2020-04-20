@@ -248,7 +248,7 @@ legend("topleft",lty = 1,bg = "transparent",
 .pull-left[
 假设缺失机制与某个X变量有关，比如所有 $X>45$ 的观测缺失，这样也不会影响OLS估计的无偏性，同样是降低了估计的有效性。
 ```{r plot_missing_MAR, fig.show='hide'}
-set.seed(1)
+set.seed(123)
 dat <- data.frame(
   rmvnorm(1000, c(50, 100), 
           sigma = cbind(c(10, 5), c(5, 10))))
@@ -260,7 +260,7 @@ points(dat$X[id], dat$Y[id],  col = "gray",
        cex = 0.8,pch = 20)
 abline(coef = c(75, 0.5), col = "darkgreen",lwd  = 1.5)
 abline(noerror_mod)
-dat <- dat[-id, ]
+dat <- dat[!id, ]
 c2_mod <- lm(dat$Y ~ dat$X, data = dat)
 abline(c2_mod, col = "purple")
 legend("topleft",lty = 1,bg = "transparent",
