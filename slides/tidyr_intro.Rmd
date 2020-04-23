@@ -1,0 +1,356 @@
+---
+title: "tidyr介绍"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(readr)
+```
+
+# longer：纵向拉长数据
+
+## 典型场景1
+
+```{r}
+relig_income
+```
+这个数据从本质上来说包括三个变量：
+1. religion, 分布在行上
+2. income，分布在列名上
+3. count，分布在单元格中
+
+```{r}
+relig_income %>% 
+  pivot_longer(-religion, names_to = "income", values_to = "count")
+```
+主力函数`pivot_longer`参数：
+1. 数据本身
+2. 指定哪些列需要变形(reshape), 本例中是所有列，除了第一列。
+3. `names_to` 指定变形之后的列名
+4. `values_to` 指定单元格数据的列名
+
+注意 `names_to`和`values_to`都是原数据`relig_income`中没有的列名。
+
+
+## 典型场景2
+`billboard`数据搜集了2000年歌曲排行版的数据。与上一个数据的情况类似，
+但是存在列名上的不再是字符串，而应该是数值（星期几）
+```{r}
+billboard
+```
+
+wkn我们希望是一个变量week，其单元格对应的取值是排行榜上的位置，所以应该是一个新的变量rank。另外，这个数据有很多缺失值，不是所有的歌曲都在排行榜上呆满了76周。
+
+```{r}
+billboard %>% 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+```
+
+week应该是一个数值变量
+
+```{r}
+billboard %>% 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    names_prefix = "wk",
+    names_ptypes = list(week = integer()),
+    values_to = "rank",
+    values_drop_na = TRUE,
+  )
+```
+
+# 典型场景3：一列包含多个变量
+```{r}
+who
+```
+
+从 new_sp_m014 到 newrel_f65，每一列其实都包含四个变量信息：
+1. new_或者new：是否为新观测值，可能是一个哑变量，但本数据中全部都是新观测，因此该变量可以忽略。
+2. sp/rel/sp/ep: 
+3. m/f：性别
+4. 014/1524/2535/3544/4554/65: 年龄区间
+
+```{r}
+who %>% pivot_longer(
+  cols = new_sp_m014:newrel_f65,
+  names_to = c("diagnosis", "gender", "age"), 
+  names_pattern = "new_?(.*)_(.)(.*)",
+  values_to = "count"
+)
+```
+
+进一步，明确gender和age的因子格式
+```{r}
+who %>% pivot_longer(
+  cols = new_sp_m014:newrel_f65,
+  names_to = c("diagnosis", "gender", "age"), 
+  names_pattern = "new_?(.*)_(.)(.*)",
+  names_ptypes = list(
+    gender = factor(levels = c("f", "m")),
+    age = factor(
+      levels = c("014", "1524", "2534", "3544", "4554", "5564", "65"), 
+      ordered = TRUE
+    )
+  ),
+  values_to = "count",
+)
+```
+# 典型场景4：一行有多个观测
+
+
+```{r}
+family <- tribble(
+  ~family,  ~dob_child1,  ~dob_child2, ~gender_child1, ~gender_child2,
+       1L, "1998-11-26", "2000-01-29",             1L,             2L,
+       2L, "1996-06-22",           NA,             2L,             NA,
+       3L, "2002-07-11", "2004-04-05",             2L,             2L,
+       4L, "2004-10-10", "2009-08-27",             1L,             1L,
+       5L, "2000-12-05", "2005-02-28",             2L,             1L,
+)
+family <- family %>% mutate_at(vars(starts_with("dob")), parse_date)
+family
+```
+```{r}
+family %>% 
+  pivot_longer(
+    -family, 
+    names_to = c(".value", "child"), 
+    names_sep = "_", 
+    values_drop_na = TRUE
+  )
+```
+注意.value的使用，表示该变量本身就是观测值。
+
+再看一个例子
+
+```{r}
+anscombe
+```
+![ans](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Anscombe%27s_quartet_3.svg/638px-Anscombe%27s_quartet_3.svg.png)
+```{r}
+anscombe %>% 
+  pivot_longer(everything(), 
+    names_to = c(".value", "set"), 
+    names_pattern = "(.)(.)"
+  ) %>% 
+  arrange(set)
+```
+另外一个例子：面板数据雏形
+
+```{r}
+pnl <- tibble(
+  x = 1:4,
+  a = c(1, 1,0, 0),
+  b = c(0, 1, 1, 1),
+  y1 = rnorm(4),
+  y2 = rnorm(4),
+  z1 = rep(3, 4),
+  z2 = rep(-2, 4),
+)
+pnl
+```
+```{r}
+pnl %>% 
+  pivot_longer(
+    -c(x, a, b), 
+    names_to = c(".value", "time"), 
+    names_pattern = "(.)(.)"
+  )
+```
+
+# 典型场景5： 重复的列名
+```{r}
+df <- tibble(x = 1:3, y = 4:6, y = 5:7, y = 7:9, .name_repair = "minimal")
+df
+```
+
+```{r}
+df %>% pivot_longer(-x, names_to = "name", values_to = "value")
+```
+
+
+
+
+# Wider: 拉宽数据
+相对来说，longer数据比wider数据更干净(tidy), 符合tidyr和类似plm包的数据格式要求。但有些时候，宽数据更适合做数据展示。其他软件也可能要求数据输入格式为wider。
+
+```{r}
+fish_encounters
+```
+很多分析方法要求将station放在列上（变宽）：
+```{r}
+fish_encounters %>% pivot_wider(names_from = station, values_from = seen)
+```
+很多缺失值NA，为什么？其实不是确实，而是有真实含义。因此：
+
+```{r}
+fish_encounters %>% pivot_wider(
+  names_from = station, 
+  values_from = seen,
+  values_fill = list(seen = 0)
+)
+```
+## 汇总
+
+```{r}
+warpbreaks <- warpbreaks %>% as_tibble() %>% select(wool, tension, breaks)
+warpbreaks
+```
+```{r}
+warpbreaks %>% count(wool, tension)
+```
+以下为什么报警？
+
+```{r}
+warpbreaks %>% pivot_wider(names_from = wool, values_from = breaks)
+```
+```{r}
+warpbreaks %>% 
+  pivot_wider(
+    names_from = wool, 
+    values_from = breaks,
+    values_fn = list(breaks = mean)
+  )
+```
+
+# 典型场景：从多个变量生成一列
+```{r}
+production <- expand_grid(
+    product = c("A", "B"), 
+    country = c("AI", "EI"), 
+    year = 2000:2014
+  ) %>%
+  dplyr::filter((product == "A" & country == "AI") | product == "B") %>% 
+  mutate(production = rnorm(nrow(.)))
+production
+```
+
+```{r}
+production %>% pivot_wider(
+  names_from = c(product, country), 
+  values_from = production
+)
+```
+# tidy census 调查数据
+us_rent_income 包括2017年美国收入和租金支出数据。
+
+```{r}
+us_rent_income
+```
+这个数据有什么不干净的地方？
+
+```{r}
+us_rent_income %>% 
+  pivot_wider(names_from = variable, values_from = c(estimate, moe))
+```
+
+# contact 列表数据
+```{r}
+contacts <- tribble(
+  ~field, ~value,
+  "name", "Jiena McLellan",
+  "company", "Toyota", 
+  "name", "John Smith", 
+  "company", "google", 
+  "email", "john@google.com",
+  "name", "Huxley Ratcliffe"
+)
+contacts
+```
+没有id标识
+```{r}
+contacts <- contacts %>% 
+  mutate(
+    person_id = cumsum(field == "name")
+  )
+contacts
+```
+
+```{r}
+contacts %>% 
+  pivot_wider(names_from = field, values_from = value)
+```
+
+# longer, then wider:  长宽操作组合
+有些问题不能通过一步拉长（宽）完成，需要组合两种pivot操作：
+world_bank_pop数据包含2000年2018年世界银行关于各国人口的数据
+```{r}
+world_bank_pop
+```
+这个数据很不干净，我们从最明显的问题开始处理：
+- 第一个问题：年份跨列，这应该是个longer操作
+```{r}
+pop2 <- world_bank_pop %>% 
+  pivot_longer(`2000`:`2017`, names_to = "year", values_to = "value")
+pop2
+```
+- 第二个问题：indicator的信息冗余
+```{r}
+pop2 %>% count(indicator)
+```
+“SP.POP.GROW is population growth, SP.POP.TOTL is total population, and SP.URB.* are the same but only for urban areas. ”
+
+应该有两个变量：area，表示total和urban；
+还有两个实际变量：population和growth
+
+首先需要用到separate
+```{r}
+pop3 <- pop2 %>% 
+  separate(indicator, c(NA, "area", "variable"))
+pop3
+```
+
+- 第三个问题：variable包括了两个实际变量，需要wider操作。
+```{r}
+pop3 %>% 
+  pivot_wider(names_from = variable, values_from = value)
+```
+
+# 典型场景：多选题数据
+```{r}
+multi <- tribble(
+  ~id, ~choice1, ~choice2, ~choice3,
+  1, "A", "B", "C",
+  2, "C", "B",  NA,
+  3, "D",  NA,  NA,
+  4, "B", "D",  NA
+)
+multi
+```
+先longer
+
+```{r}
+multi2 <- multi %>% 
+  pivot_longer(-id, values_drop_na = TRUE) %>% 
+  mutate(checked = TRUE)
+multi2
+```
+再wider
+
+```{r}
+multi2 %>% 
+  pivot_wider(
+    id_cols = id,
+    names_from = value, 
+    values_from = checked, 
+    values_fill = list(checked = FALSE)
+  )
+```
+
+
+
+
+
+
+
+
