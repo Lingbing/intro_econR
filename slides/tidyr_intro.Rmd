@@ -25,7 +25,7 @@ relig_income
 
 ```{r}
 relig_income %>% 
-  pivot_longer(-religion, names_to = "income", values_to = "count")
+  pivot_longer(-religion, names_to = "income", values_to = "count") 
 ```
 主力函数`pivot_longer`参数：
 1. 数据本身
@@ -65,8 +65,9 @@ billboard %>%
     names_prefix = "wk",
     names_ptypes = list(week = integer()),
     values_to = "rank",
-    values_drop_na = TRUE,
-  )
+      values_drop_na = TRUE,
+  ) %>% 
+
 ```
 
 # 典型场景3：一列包含多个变量
@@ -79,6 +80,13 @@ who
 2. sp/rel/sp/ep: 
 3. m/f：性别
 4. 014/1524/2535/3544/4554/65: 年龄区间
+
+names_pattern 正则表达式
+
+1. new或者new_：new_?：表示new或者new_
+2. sp/rel/np/ep:(.*)
+3. m/f:(.)
+4. 014,1524: (.*)
 
 ```{r}
 who %>% pivot_longer(
@@ -107,7 +115,11 @@ who %>% pivot_longer(
 ```
 # 典型场景4：一行有多个观测
 
+一个观测应该独占一行。这个数据的问题是：
+1. 两个孩子的信息放在了同一行上。
+2. dob和孩子的标识符child1-2放在了一起
 
+这里，没有`values_to`这个参数，没有形成一个新的列来放置单元格值。
 ```{r}
 family <- tribble(
   ~family,  ~dob_child1,  ~dob_child2, ~gender_child1, ~gender_child2,
@@ -182,7 +194,8 @@ df %>% pivot_longer(-x, names_to = "name", values_to = "value")
 
 
 # Wider: 拉宽数据
-相对来说，longer数据比wider数据更干净(tidy), 符合tidyr和类似plm包的数据格式要求。但有些时候，宽数据更适合做数据展示。其他软件也可能要求数据输入格式为wider。
+相对来说，longer数据比wider数据更干净(tidy),
+符合tidyr和类似plm包的数据格式要求。但有些时候，宽数据更适合做数据展示。其他软件也可能要求数据输入格式为wider。
 
 ```{r}
 fish_encounters
@@ -219,7 +232,7 @@ warpbreaks %>%
   pivot_wider(
     names_from = wool, 
     values_from = breaks,
-    values_fn = list(breaks = mean)
+    values_fn = list(breaks = sd)
   )
 ```
 
@@ -304,6 +317,7 @@ pop2 %>% count(indicator)
 还有两个实际变量：population和growth
 
 首先需要用到separate
+
 ```{r}
 pop3 <- pop2 %>% 
   separate(indicator, c(NA, "area", "variable"))
@@ -311,9 +325,10 @@ pop3
 ```
 
 - 第三个问题：variable包括了两个实际变量，需要wider操作。
+
 ```{r}
 pop3 %>% 
-  pivot_wider(names_from = variable, values_from = value)
+  pivot_wider(names_from = variable, values_from = value) 
 ```
 
 # 典型场景：多选题数据
