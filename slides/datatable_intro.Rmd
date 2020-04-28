@@ -1,0 +1,252 @@
+---
+title: "data.table介绍"
+output: html_notebook
+---
+
+# 数据
+```{r}
+library(data.table)
+print(getwd())
+flights <- fread("data/flights14.txt")
+```
+
+# data.table 基础
+`data.table`是`data.frame`的增强版。
+```{r}
+DT = data.table(
+  ID = c("b","b","b","a","a","c"),
+  a = 1:6,
+  b = 7:12,
+  c = 13:18
+)
+DT
+class(DT$ID)
+```
+
+## DT基本语法
+
+```
+DT[i, j, by]
+##   R:                 i                 j        by
+## SQL:  where | order by   select | update  group by
+```
+
+## 取行
+
+不同于R中自带的数据框格式要求，如果只是取行，逗号不再是必须的。
+
+```{r}
+ans <- flights[origin == "JFK" & month == 6L]
+ans
+```
+
+```{r}
+ans <- flights[1:2]
+ans
+```
+
+## 重新排序
+```{r}
+ans <- flights[order(origin, -dest)]
+head(ans)
+```
+
+## 取列
+如果只有一列，会返回一个向量
+
+```{r}
+ans <- flights[, arr_delay]
+head(ans)
+```
+
+若想返回`data.table`对象
+```{r}
+ans <- flights[, list(arr_delay)]
+head(ans)
+```
+
+或者使用`.()` 等同于`list()`。
+```{r}
+ans <- flights[, .(arr_delay)]
+head(ans)
+```
+```{r}
+ans <- flights[, .(arr_delay, dep_delay)]
+head(ans)
+
+## 等同于
+# ans <- flights[, list(arr_delay, dep_delay)]
+```
+
+## 取列，同时重命名
+
+```{r}
+ans <- flights[, .(delay_arr = arr_delay, delay_dep = dep_delay)]
+head(ans)
+```
+
+## 列中计算 （compute or do in j）
+```{r}
+ans <- flights[, sum( (arr_delay + dep_delay) < 0 )]
+ans
+```
+
+## 行列同时操作
+```{r}
+ans <- flights[origin == "JFK" & month == 6L,
+               .(m_arr = mean(arr_delay), m_dep = mean(dep_delay))]
+ans
+```
+
+```{r}
+ans <- flights[origin == "JFK" & month == 6L, length(dest)]
+ans
+```
+
+## 特殊符号 `.N`
+```{r}
+ans <- flights[origin == "JFK" & month == 6L, .N]
+ans
+```
+
+## 选列的不同方法
+1. 类似data.frame的方法
+```{r}
+ans <- flights[, c("arr_delay", "dep_delay")]
+head(ans)
+```
+
+2. 使用`..`前缀
+```{r}
+select_cols = c("arr_delay", "dep_delay")
+flights[ , ..select_cols]
+```
+
+3. 使用`with`
+```{r}
+flights[ , select_cols, with = FALSE]
+```
+```{r}
+# returns year,month and day
+ans <- flights[, year:day]
+# returns day, month and year
+ans <- flights[, day:year]
+# returns all columns except year, month and day
+ans <- flights[, -(year:day)]
+ans <- flights[, !(year:day)]
+```
+
+# 汇总
+```{r}
+ans <- flights[, .N, by = .(origin)]
+# or equivalently
+ans <- flights[, .(.N), by = .(origin)]
+ans
+```
+```{r}
+ans <- flights[carrier == "AA", .N, by = origin]
+ans
+```
+
+```{r}
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)]
+head(ans)
+
+## or equivalently using a character vector in 'by'
+# ans <- flights[carrier == "AA", .N, by = c("origin", "dest")]
+```
+
+## 行列分组汇总计算混合操作
+```{r}
+ans <- flights[carrier == "AA",
+        .(mean(arr_delay), mean(dep_delay)),
+        by = .(origin, dest, month)]
+ans
+```
+
+
+# 排序分组: `keyby`
+
+`data.table`在分组后默认保留原先的排序情况。如果想重新分组，可以将`by`改为`keyby`：
+
+```{r}
+ans <- flights[carrier == "AA",
+        .(mean(arr_delay), mean(dep_delay)),
+        keyby = .(origin, dest, month)]
+```
+
+
+# 链式操作 (chaining)
+```{r}
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)]
+```
+
+```{r}
+ans <- ans[order(origin, -dest)]
+head(ans)
+```
+
+此处，为了排序，我们使用了中间操作，临时存储了一个`ans`对象后再进行排序操作。其实可以一步到位：
+```{r}
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)][order(origin, -dest)]
+head(ans, 10)
+```
+
+# 分组by和表达式
+列操作j可以使用表达式，分组操作by同样可以
+```{r}
+ans <- flights[, .N, .(dep_delay>0, arr_delay>0)]
+ans
+```
+
+# j中可以用多列：`.SD`
+比如，有100个列均值要计算。
+
+特殊符号`SD`代表 **S**ubset of **D**ata. 其本身就是一个当前by分组结果的data.table
+```{r}
+DT
+```
+
+```{r}
+DT[, print(.SD), by = ID]
+```
+
+因此，在多个列上做运算，可以使用`lapply()`
+```{r}
+DT[, lapply(.SD, mean), by = ID]
+```
+
+# 只选择需要的列进行汇总计算 `SDcols`
+```{r}
+flights[carrier == "AA",                       ## Only on trips with carrier "AA"
+        lapply(.SD, mean),                     ## compute the mean
+        by = .(origin, dest, month),           ## for every 'origin,dest,month'
+        .SDcols = c("arr_delay", "dep_delay")] ## for just those specified in .SDcols
+```
+
+如何查看每个月的前两行数据
+
+```{r}
+ans <- flights[, head(.SD, 2), by = month]
+head(ans)
+```
+注意以下两个语法的区别：
+```{r}
+DT[, .(val = c(a,b)), by = ID]
+```
+
+```{r}
+DT[, .(val = list(c(a,b))), by = ID]
+```
+
+DT的j操作非常灵活，有时候令人难以琢磨。为了更好的理解j，可以使用print函数看看究竟发生了什么
+```{r}
+## (1) look at the difference between
+DT[, print(c(a,b)), by = ID]
+
+
+## (2) and
+DT[, print(list(c(a,b))), by = ID]
+```
+
+记住：只要j的返回值是一个`list`对象，那么这个`list`的每个元素都将成为`data.table`返回值的一列。
