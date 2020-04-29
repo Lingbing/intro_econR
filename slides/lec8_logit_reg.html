@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>二元变量回归</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 二元变量回归
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+# 线性概率模型
+
+如果 `\(Y_i\)` 是二元被解释变量，则以下模型称作线性概率模型：
+
+`$$Y_i = \beta_0 + \beta_1 + X_{1i} + \beta_2 X_{2i} + \dots + \beta_k X_{ki} + u_i$$`
+取期望：
+`$$E(Y\vert X_1,X_2,\dots,X_k) = P(Y=1\vert X_1, X_2,\dots, X_3)$$` 
+
+`$$P(Y = 1 \vert X_1, X_2, \dots, X_k) = \beta_0 + \beta_1 + X_{1i} + \beta_2 X_{2i} + \dots + \beta_k X_{ki}.$$`
+### 注意以下问题：
+
+1. 参数系数可以用OLS估计。
+
+2. R方不再有直接的解释意义，因为回归线不可能对数据有较好的拟合。
+
+3. 必须使用稳健标准误进行统计推断，因为可以确定残差肯定存在异方差。
+
+---
+# 数据实例
+
+```r
+data(HMDA)
+head(HMDA)
+&gt;   deny pirat hirat     lvrat chist mhist phist unemp selfemp insurance condomin
+&gt; 1   no 0.221 0.221 0.8000000     5     2    no   3.9      no        no       no
+&gt; 2   no 0.265 0.265 0.9218750     2     2    no   3.2      no        no       no
+&gt; 3   no 0.372 0.248 0.9203980     1     2    no   3.2      no        no       no
+&gt; 4   no 0.320 0.250 0.8604651     1     2    no   4.3      no        no       no
+&gt; 5   no 0.360 0.350 0.6000000     1     1    no   3.2      no        no       no
+&gt; 6   no 0.240 0.170 0.5105263     1     1    no   3.9      no        no       no
+&gt;   afam single hschool
+&gt; 1   no     no     yes
+&gt; 2   no    yes     yes
+&gt; 3   no     no     yes
+&gt; 4   no     no     yes
+&gt; 5   no     no     yes
+&gt; 6   no     no     yes
+```
+
+`$$\begin{align}
+  deny = \beta_0 + \beta_1 \times P/I\ ratio + u. \tag{11.1}
+\end{align}$$`
+
+deny是一个二元变量，如果应用线性概率模型，需将其转换为数值0,1
+
+---
+# 线性概率模型
+
+```r
+HMDA$deny &lt;- as.numeric(HMDA$deny) - 1
+denymod1 &lt;- lm(deny ~ pirat, data = HMDA)
+denymod1
+&gt; 
+&gt; Call:
+&gt; lm(formula = deny ~ pirat, data = HMDA)
+&gt; 
+&gt; Coefficients:
+&gt; (Intercept)        pirat  
+&gt;    -0.07991      0.60353
+```
+
+---
+# 拟合效果
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-3-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+# 估计模型
+
+```r
+coeftest(denymod1, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) -0.079910   0.031967 -2.4998   0.01249 *  
+&gt; pirat        0.603535   0.098483  6.1283 1.036e-09 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+模型为：
+`$$\begin{align}
+\widehat{deny} = -\underset{(0.032)}{0.080} + \underset{(0.098)}{0.604} P/I \ ratio. \tag{11.2}
+\end{align}$$`
+
+### 参数估计0.604的概率解释？
+
+---
+# 多变量线性概率模型
+
+增加一个变量：
+
+```r
+colnames(HMDA)[colnames(HMDA) == "afam"] &lt;- "black"
+
+# estimate the model
+denymod2 &lt;- lm(deny ~ pirat + black, data = HMDA)
+coeftest(denymod2, vcov. = vcovHC)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) -0.090514   0.033430 -2.7076  0.006826 ** 
+&gt; pirat        0.559195   0.103671  5.3939 7.575e-08 ***
+&gt; blackyes     0.177428   0.025055  7.0815 1.871e-12 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+模型为：
+`$$\begin{align}
+  \widehat{deny} =&amp; \, -\underset{(0.029)}{0.091} + \underset{(0.089)}{0.559} P/I \ ratio + \underset{(0.025)}{0.177} black. \tag{11.3}
+\end{align}$$`
+
+---
+# 线性概率模型的问题
+
+线性概率模型的主要问题是：Y的条件概率被假设为解释变量的线性函数估计，因此 `\(P(Y=1\vert X_1,\dots,X_k)\)` 的取值范围不是[0, 1]。
+
+
+因此我们需要一个非线性函数结构来拟合Y的条件概率。常用的就是Probit和Logit回归。
+
+### Probit 回归模型
+
+`$$\begin{align}
+  E(Y\vert X) = P(Y=1\vert X) = \Phi(\beta_0 + \beta_1 X). \tag{11.4}
+\end{align}$$`
+
+`\(z = \beta_0+ \beta1 X\)`,
+
+`$$\begin{align}
+  E(Y\vert X) = P(Y=1\vert X) = \Phi(\beta_0 + \beta_1 X). \tag{11.4}
+\end{align}$$`
+
+- 应注意 `\(\beta_1\)` 的解释为X的单位变化所引起的z的变化值。z与X之间是线性关系。
+
+- `\(\Phi\)` 称为Y和z之间的连接(link)，该link将Y和X非线性链接起来，并且使得Y的条件概率取值限制在0和1之间。
+
+
+---
+# Probit模型的系数解释
+
+由于link函数的存在，Y与X之间没有简单的线性解释。X的变化所导致的Y=1概率的变化需要通过**预测法**获得：
+
+1. 给定X，计算Y=1的预测概率值
+
+2. 给定 `\(X + \Delta X\)`，计算Y=1的预测概率值
+
+3. 计算以上两步的插值
+
+
+```r
+denyprobit &lt;- glm(deny ~ pirat, 
+                  family = binomial(link = "probit"), 
+                  data = HMDA)
+coeftest(denyprobit, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; z test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error  z value  Pr(&gt;|z|)    
+&gt; (Intercept) -2.19415    0.18901 -11.6087 &lt; 2.2e-16 ***
+&gt; pirat        2.96787    0.53698   5.5269 3.259e-08 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+
+---
+# Probit 模型拟合图
+.pull-left[
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+]
+
+.pull-right[
+
+模型为
+
+`$$\begin{align}
+  \widehat{P(deny\vert P/I \ ratio}) = \Phi(-\underset{(0.19)}{2.19} + \underset{(0.54)}{2.97} P/I \ ratio)
+\end{align}$$`
+
+假设P/I ration从0.3增加到0.4，则Y=1的概率提高多少？
+
+
+```r
+predictions1 &lt;- predict(denyprobit, 
+                       newdata = data.frame("pirat" = c(0.3, 0.4)),
+                       type = "response")
+diff(predictions1)
+&gt;          2 
+&gt; 0.06081433
+predictions2 &lt;- predict(denyprobit, 
+                       newdata = data.frame("black" =c("no","yes"),
+                                            "pirat" = c(0.3, 0.3)),
+                       type = "response")
+diff(predictions2)
+&gt; 2 
+&gt; 0
+```
+]
+
+---
+# Logit 回归
+
+
+.pull-left[
+
+- Probit使用了标准正态分布的CDF函数 `\(\Phi()\)` 作为连接函数
+
+- Logit，顾名思义，使用logit作为连接。那么什么是logit？
+
+`$$\begin{align*}
+  P(Y=1\vert X_1, \dots, X_k) =&amp; \, F(\beta_0 + \beta_1 X_1  + \dots + \beta_k X_k) \\
+  =&amp; \, \frac{1}{1+e^{-(\beta_0 + \beta_1 X_1 + \dots + \beta_k X_k)}}.
+\end{align*}$$`
+其中使用的link函数为标准logit分布的CDF
+
+`$$F(x) = \frac{1}{1+e^{-x}}$$`
+]
+
+.pull-right[
+
+```r
+fx &lt;- function(x) 1/(1+exp(-x))
+curve(fx, -10, 10)
+```
+
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+
+]
+
+
+---
+# Logit 回归建模
+
+.pull-left[
+
+```r
+denylogit &lt;- glm(deny ~ pirat, 
+                 family = binomial(link = "logit"), 
+                 data = HMDA)
+
+coeftest(denylogit, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; z test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error  z value  Pr(&gt;|z|)    
+&gt; (Intercept) -4.02843    0.35898 -11.2218 &lt; 2.2e-16 ***
+&gt; pirat        5.88450    1.00015   5.8836 4.014e-09 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+
+.pull-right[
+
+
+```r
+denylogit2 &lt;- glm(deny ~ pirat + black, 
+                  family = binomial(link = "logit"), 
+                  data = HMDA)
+
+coeftest(denylogit2, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; z test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error  z value  Pr(&gt;|z|)    
+&gt; (Intercept) -4.12556    0.34597 -11.9245 &lt; 2.2e-16 ***
+&gt; pirat        5.37036    0.96376   5.5723 2.514e-08 ***
+&gt; blackyes     1.27278    0.14616   8.7081 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+]
+
+`$$\begin{align}
+  \widehat{P(deny=1 \vert P/I ratio, black)} = F(-\underset{(0.35)}{4.13} + \underset{(0.96)}{5.37} P/I \ ratio + \underset{(0.15)}{1.27} black).
+\end{align}$$`
+
+---
+# Probit 和 Logit 比较
+
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-12-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+# Logit 回归模型系数解释
+
+与Probit模型一样，Logit回归的系数估计不能直接解释。需要通过“预测法”：
+
+```r
+predictions &lt;- predict(denylogit2, 
+                       newdata = data.frame("black" = c("no", "yes"), 
+                                            "pirat" = c(0.3, 0.3)),
+                       type = "response")
+
+predictions
+&gt;          1          2 
+&gt; 0.07485143 0.22414592
+diff(predictions)
+&gt;         2 
+&gt; 0.1492945
+```
+
+- Logit和Probit优于线性概率模型是显而易见的。
+
+- 然而Logit和Probit二者之间则经常二选其一即可。
+
+- 但是，如果建模的目的是用于预测，那么三个模型的预测性能往往十分接近。
+
+- R方不再适用于对Logit和Probit模型拟合优度的计算。
+
+
+---
+# Logit和Probit模型的估计
+
+- 因为非线性连接函数的存在，OLS法不再适用于估计两个模型的参数。
+
+- 一般使用最大似然估计 (MLE) 或者非线性最小二乘法 (NLS)
+
+- NLS估计的效率要低于MLE，因此通常即直接采用MLE估计。
+
+- 因为MLE估计值在大样本情况下依然是正态分布的，因此我们依然使用t检验统计量和相关的置信区间法对参数估计进行统计推断（即，显著性）
+
+- R中的`glm()`使用了IRLS算法进行参数估计。
+
+- 可以使用伪R方用于非线性模型的拟合优度测量：(分子分母分别为全模型和空模型的对数似然函数值)
+`$$\text{pseudo-}R^2 = 1 - \frac{\text{deviance}}{\text{null deviance}} = 1- \frac{\ln(f^{max}_{full})}{\ln(f^{max}_{null})}.$$`
+`$$\text{deviance} = -2 \times \left[\ln(f^{max}_{saturated}) - \ln(f^{max}_{full}) \right]$$`
+`$$\text{null deviance} = -2 \times \left[\ln(f^{max}_{saturated}) - \ln(f^{max}_{null}) \right]$$`
+
+---
+# 拟合优度
+
+R中glm函数的模型对象返回deviance和null.deviance值，不直接给出**伪R方**值：
+
+
+```r
+pseudoR2 &lt;- 1 - (denylogit2$deviance) / (denylogit2$null.deviance)
+pseudoR2
+&gt; [1] 0.08759475
+```
+
+或者使用笨办法
+
+
+```r
+denylogit_null &lt;- glm(formula = deny ~ 1, 
+                       family = binomial(link = "logit"), 
+                       data = HMDA)
+
+# 用logLik获得模型的对数似然函数值
+1 - logLik(denylogit2)[1]/logLik(denylogit_null)[1]
+&gt; [1] 0.08759475
+```
+
+
+---
+# 实例
+
+在建模之前应该充分检视数据集，确认变量类型是否合适，是否需要转换等。
+
+将lvrat连续变量离散化，在将一些错误因子化的变量数值化：
+`$$\begin{align*}
+  lvrat = 
+  \begin{cases}
+    \text{low} &amp; \text{if} \ \ lvrat &lt; 0.8, \\
+    \text{medium} &amp; \text{if} \ \ 0.8 \leq lvrat \leq 0.95, \\
+    \text{high} &amp; \text{if} \ \ lvrat &gt; 0.95
+  \end{cases}
+\end{align*}$$`
+
+
+```r
+HMDA$lvrat &lt;- factor(
+  ifelse(HMDA$lvrat &lt; 0.8, "low",
+  ifelse(HMDA$lvrat &gt;= 0.8 &amp; HMDA$lvrat &lt;= 0.95, "medium", "high")),
+  levels = c("low", "medium", "high"))
+
+# convert credit scores to numeric
+HMDA$mhist &lt;- as.numeric(HMDA$mhist)
+HMDA$chist &lt;- as.numeric(HMDA$chist)
+```
+
+---
+# 模型比较
+
+```r
+lpm_HMDA &lt;- lm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+               + insurance + selfemp, data = HMDA)
+logit_HMDA &lt;- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                  + insurance + selfemp, 
+                  family = binomial(link = "logit"), 
+                  data = HMDA)
+probit_HMDA_1 &lt;- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                     + insurance + selfemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+probit_HMDA_2 &lt;- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                     + insurance + selfemp + single + hschool + unemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+probit_HMDA_3 &lt;- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist 
+                     + phist + insurance + selfemp + single + hschool + unemp + condomin 
+                     + I(mhist==3) + I(mhist==4) + I(chist==3) + I(chist==4) + I(chist==5) 
+                     + I(chist==6), 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+
+probit_HMDA_4 &lt;- glm(deny ~ black * (pirat + hirat) + lvrat + chist + mhist + phist 
+                     + insurance + selfemp + single + hschool + unemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+```
+
+---
+# 模型比较表格
+
+
+```r
+tab_model(lpm_HMDA, logit_HMDA, probit_HMDA_1, probit_HMDA_2, probit_HMDA_3, probit_HMDA_4 , emph.p = T, robust = T,
+          show.ci = F, collapse.se = T, dv.labels = paste0("M", 1:6),string.pred = "Coeffcient", show.se = F,
+          p.style = "a")
+```
+
+也可以使用stargazar
+
+
+```r
+rob_se &lt;- list(sqrt(diag(vcovHC(lpm_HMDA, type = "HC1"))),
+               sqrt(diag(vcovHC(logit_HMDA, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_1, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_2, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_3, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_4, type = "HC1"))))
+
+stargazer(lpm_HMDA, logit_HMDA, probit_HMDA_1, 
+          probit_HMDA_2, probit_HMDA_3, probit_HMDA_4,  
+          digits = 3,
+          type = "latex", 
+          header = FALSE,
+          se = rob_se,
+          model.numbers = FALSE,
+          column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
+```
+
+
+---
+# 预测分析
+计算一个**平均（典型）黑人**的预测值
+
+```r
+new &lt;- data.frame(
+  "pirat" = mean(HMDA$pirat),"hirat" = mean(HMDA$hirat),
+  "lvrat" = "low", "chist" = mean(HMDA$chist),
+  "mhist" = mean(HMDA$mhist),"phist" = "no",
+  "insurance" = "no","selfemp" = "no",
+  "black" = c("no", "yes"),"single" = "no",
+  "hschool" = "yes","unemp" = mean(HMDA$unemp),
+  "condomin" = "no")
+predictions1 &lt;- predict(lpm_HMDA, newdata = new)
+predictions2 &lt;- predict(logit_HMDA, newdata = new, type = "response")
+predictions3 &lt;- predict(probit_HMDA_1, newdata = new, type = "response")
+predictions4 &lt;- predict(probit_HMDA_2, newdata = new, type = "response")
+predictions5 &lt;- predict(probit_HMDA_3, newdata = new, type = "response")
+predictions6 &lt;- predict(probit_HMDA_4, newdata = new, type = "response")
+```
+
+
+```r
+diff &lt;- c(diff(predictions1), diff(predictions2), diff(predictions3),
+  diff(predictions4), diff(predictions5), diff(predictions6))
+names(diff) &lt;- paste0("m", 1:6)
+round(diff*100,4)
+&gt;     m1     m2     m3     m4     m5     m6 
+&gt; 8.3697 4.0421 5.0497 3.9789 4.9725 3.9559
+```
+
+---
+# 交互效应
+
+```r
+linearHypothesis(probit_HMDA_4,
+                 test = "F",
+                 c("blackyes:pirat=0", "blackyes:hirat=0"),
+                 vcov = vcovHC, type = "HC1")
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; blackyes:pirat = 0
+&gt; blackyes:hirat = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: deny ~ black * (pirat + hirat) + lvrat + chist + mhist + phist + 
+&gt;     insurance + selfemp + single + hschool + unemp
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F Pr(&gt;F)
+&gt; 1   2366                 
+&gt; 2   2364  2 0.2473 0.7809
+```
+
+---
+# 主效应
+
+```r
+linearHypothesis(probit_HMDA_4,
+                 test = "F",
+                 c("blackyes=0", "blackyes:pirat=0", "blackyes:hirat=0"),
+                 vcov = vcovHC, type = "HC1")
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; blackyes = 0
+&gt; blackyes:pirat = 0
+&gt; blackyes:hirat = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: deny ~ black * (pirat + hirat) + lvrat + chist + mhist + phist + 
+&gt;     insurance + selfemp + single + hschool + unemp
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F   Pr(&gt;F)   
+&gt; 1   2367                      
+&gt; 2   2364  3 4.7774 0.002534 **
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

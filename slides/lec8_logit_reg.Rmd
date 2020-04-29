@@ -1,0 +1,510 @@
+---
+title: "二元变量回归"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(AER)
+library(stargazer)
+library(kableExtra)
+library(sjPlot)
+library(sjmisc)
+library(plm)
+library(sjlabelled)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
+```
+# 线性概率模型
+
+如果 $Y_i$ 是二元被解释变量，则以下模型称作线性概率模型：
+
+$$Y_i = \beta_0 + \beta_1 + X_{1i} + \beta_2 X_{2i} + \dots + \beta_k X_{ki} + u_i$$
+取期望：
+$$E(Y\vert X_1,X_2,\dots,X_k) = P(Y=1\vert X_1, X_2,\dots, X_3)$$ 
+
+$$P(Y = 1 \vert X_1, X_2, \dots, X_k) = \beta_0 + \beta_1 + X_{1i} + \beta_2 X_{2i} + \dots + \beta_k X_{ki}.$$
+### 注意以下问题：
+
+1. 参数系数可以用OLS估计。
+
+2. R方不再有直接的解释意义，因为回归线不可能对数据有较好的拟合。
+
+3. 必须使用稳健标准误进行统计推断，因为可以确定残差肯定存在异方差。
+
+---
+# 数据实例
+```{r}
+data(HMDA)
+head(HMDA)
+```
+
+$$\begin{align}
+  deny = \beta_0 + \beta_1 \times P/I\ ratio + u. \tag{11.1}
+\end{align}$$
+
+deny是一个二元变量，如果应用线性概率模型，需将其转换为数值0,1
+
+---
+# 线性概率模型
+```{r}
+HMDA$deny <- as.numeric(HMDA$deny) - 1
+denymod1 <- lm(deny ~ pirat, data = HMDA)
+denymod1
+```
+
+---
+# 拟合效果
+```{r echo = F, fig.align='center'}
+# plot the data
+plot(x = HMDA$pirat, 
+     y = HMDA$deny,
+     main = "Scatterplot Mortgage Application Denial and the Payment-to-Income Ratio",
+     xlab = "P/I ratio",
+     ylab = "Deny",
+     pch = 20,
+     ylim = c(-0.4, 1.4),
+     cex.main = 0.8)
+
+# add horizontal dashed lines and text
+abline(h = 1, lty = 2, col = "darkred")
+abline(h = 0, lty = 2, col = "darkred")
+text(2.5, 0.9, cex = 0.8, "Mortgage denied")
+text(2.5, -0.1, cex= 0.8, "Mortgage approved")
+
+# add the estimated regression line
+abline(denymod1, 
+       lwd = 1.8, 
+       col = "steelblue")
+```
+
+---
+# 估计模型
+```{r}
+coeftest(denymod1, vcov. = vcovHC, type = "HC1")
+```
+
+模型为：
+$$\begin{align}
+\widehat{deny} = -\underset{(0.032)}{0.080} + \underset{(0.098)}{0.604} P/I \ ratio. \tag{11.2}
+\end{align}$$
+
+### 参数估计0.604的概率解释？
+
+---
+# 多变量线性概率模型
+
+增加一个变量：
+```{r}
+colnames(HMDA)[colnames(HMDA) == "afam"] <- "black"
+
+# estimate the model
+denymod2 <- lm(deny ~ pirat + black, data = HMDA)
+coeftest(denymod2, vcov. = vcovHC)
+```
+模型为：
+$$\begin{align}
+  \widehat{deny} =& \, -\underset{(0.029)}{0.091} + \underset{(0.089)}{0.559} P/I \ ratio + \underset{(0.025)}{0.177} black. \tag{11.3}
+\end{align}$$
+
+---
+# 线性概率模型的问题
+
+线性概率模型的主要问题是：Y的条件概率被假设为解释变量的线性函数估计，因此 $P(Y=1\vert X_1,\dots,X_k)$ 的取值范围不是[0, 1]。
+
+
+因此我们需要一个非线性函数结构来拟合Y的条件概率。常用的就是Probit和Logit回归。
+
+### Probit 回归模型
+
+$$\begin{align}
+  E(Y\vert X) = P(Y=1\vert X) = \Phi(\beta_0 + \beta_1 X). \tag{11.4}
+\end{align}$$
+
+$z = \beta_0+ \beta1 X$,
+
+$$\begin{align}
+  E(Y\vert X) = P(Y=1\vert X) = \Phi(\beta_0 + \beta_1 X). \tag{11.4}
+\end{align}$$
+
+- 应注意 $\beta_1$ 的解释为X的单位变化所引起的z的变化值。z与X之间是线性关系。
+
+- $\Phi$ 称为Y和z之间的连接(link)，该link将Y和X非线性链接起来，并且使得Y的条件概率取值限制在0和1之间。
+
+
+---
+# Probit模型的系数解释
+
+由于link函数的存在，Y与X之间没有简单的线性解释。X的变化所导致的Y=1概率的变化需要通过**预测法**获得：
+
+1. 给定X，计算Y=1的预测概率值
+
+2. 给定 $X + \Delta X$，计算Y=1的预测概率值
+
+3. 计算以上两步的插值
+
+```{r}
+denyprobit <- glm(deny ~ pirat, 
+                  family = binomial(link = "probit"), 
+                  data = HMDA)
+coeftest(denyprobit, vcov. = vcovHC, type = "HC1")
+```
+
+
+---
+# Probit 模型拟合图
+.pull-left[
+```{r echo=F}
+plot(x = HMDA$pirat, 
+     y = HMDA$deny,
+     main = "Probit Model of the Probability of Denial, Given P/I Ratio",
+     xlab = "P/I ratio",
+     ylab = "Deny",
+     pch = 20,
+     ylim = c(-0.4, 1.4),
+     cex.main = 0.85)
+abline(h = 1, lty = 2, col = "darkred")
+abline(h = 0, lty = 2, col = "darkred")
+text(2.5, 0.9, cex = 0.8, "Mortgage denied")
+text(2.5, -0.1, cex= 0.8, "Mortgage approved")
+x <- seq(0, 3, 0.01)
+y <- predict(denyprobit, list(pirat = x), type = "response")
+lines(x, y, lwd = 1.5, col = "steelblue")
+```
+]
+
+.pull-right[
+
+模型为
+
+$$\begin{align}
+  \widehat{P(deny\vert P/I \ ratio}) = \Phi(-\underset{(0.19)}{2.19} + \underset{(0.54)}{2.97} P/I \ ratio)
+\end{align}$$
+
+假设P/I ration从0.3增加到0.4，则Y=1的概率提高多少？
+
+```{r}
+predictions1 <- predict(denyprobit, 
+                       newdata = data.frame("pirat" = c(0.3, 0.4)),
+                       type = "response")
+diff(predictions1)
+predictions2 <- predict(denyprobit, 
+                       newdata = data.frame("black" =c("no","yes"),
+                                            "pirat" = c(0.3, 0.3)),
+                       type = "response")
+diff(predictions2)
+```
+]
+
+---
+# Logit 回归
+
+
+.pull-left[
+
+- Probit使用了标准正态分布的CDF函数 $\Phi()$ 作为连接函数
+
+- Logit，顾名思义，使用logit作为连接。那么什么是logit？
+
+$$\begin{align*}
+  P(Y=1\vert X_1, \dots, X_k) =& \, F(\beta_0 + \beta_1 X_1  + \dots + \beta_k X_k) \\
+  =& \, \frac{1}{1+e^{-(\beta_0 + \beta_1 X_1 + \dots + \beta_k X_k)}}.
+\end{align*}$$
+其中使用的link函数为标准logit分布的CDF
+
+$$F(x) = \frac{1}{1+e^{-x}}$$
+]
+
+.pull-right[
+```{r}
+fx <- function(x) 1/(1+exp(-x))
+curve(fx, -10, 10)
+```
+
+]
+
+
+---
+# Logit 回归建模
+
+.pull-left[
+```{r}
+denylogit <- glm(deny ~ pirat, 
+                 family = binomial(link = "logit"), 
+                 data = HMDA)
+
+coeftest(denylogit, vcov. = vcovHC, type = "HC1")
+
+```
+]
+
+.pull-right[
+
+```{r}
+denylogit2 <- glm(deny ~ pirat + black, 
+                  family = binomial(link = "logit"), 
+                  data = HMDA)
+
+coeftest(denylogit2, vcov. = vcovHC, type = "HC1")
+```
+
+]
+
+$$\begin{align}
+  \widehat{P(deny=1 \vert P/I ratio, black)} = F(-\underset{(0.35)}{4.13} + \underset{(0.96)}{5.37} P/I \ ratio + \underset{(0.15)}{1.27} black).
+\end{align}$$
+
+---
+# Probit 和 Logit 比较
+
+```{r echo=F, fig.align='center'}
+plot(x = HMDA$pirat, 
+     y = HMDA$deny,
+     main = "Probit and Logit Models Model of the Probability of Denial, Given P/I Ratio",
+     xlab = "P/I ratio",
+     ylab = "Deny",
+     pch = 20,
+     ylim = c(-0.4, 1.4),
+     cex.main = 0.9)
+
+# add horizontal dashed lines and text
+abline(h = 1, lty = 2, col = "darkred")
+abline(h = 0, lty = 2, col = "darkred")
+text(2.5, 0.9, cex = 0.8, "Mortgage denied")
+text(2.5, -0.1, cex= 0.8, "Mortgage approved")
+
+# add estimated regression line of Probit and Logit models
+x <- seq(0, 3, 0.01)
+y_probit <- predict(denyprobit, list(pirat = x), type = "response")
+y_logit <- predict(denylogit, list(pirat = x), type = "response")
+
+lines(x, y_probit, lwd = 1.5, col = "steelblue")
+lines(x, y_logit, lwd = 1.5, col = "black", lty = 2)
+
+# add a legend
+legend("topleft",
+       horiz = TRUE,
+       legend = c("Probit", "Logit"),
+       col = c("steelblue", "black"), 
+       lty = c(1, 2))
+```
+
+---
+# Logit 回归模型系数解释
+
+与Probit模型一样，Logit回归的系数估计不能直接解释。需要通过“预测法”：
+```{r}
+predictions <- predict(denylogit2, 
+                       newdata = data.frame("black" = c("no", "yes"), 
+                                            "pirat" = c(0.3, 0.3)),
+                       type = "response")
+
+predictions
+diff(predictions)
+```
+
+- Logit和Probit优于线性概率模型是显而易见的。
+
+- 然而Logit和Probit二者之间则经常二选其一即可。
+
+- 但是，如果建模的目的是用于预测，那么三个模型的预测性能往往十分接近。
+
+- R方不再适用于对Logit和Probit模型拟合优度的计算。
+
+
+---
+# Logit和Probit模型的估计
+
+- 因为非线性连接函数的存在，OLS法不再适用于估计两个模型的参数。
+
+- 一般使用最大似然估计 (MLE) 或者非线性最小二乘法 (NLS)
+
+- NLS估计的效率要低于MLE，因此通常即直接采用MLE估计。
+
+- 因为MLE估计值在大样本情况下依然是正态分布的，因此我们依然使用t检验统计量和相关的置信区间法对参数估计进行统计推断（即，显著性）
+
+- R中的`glm()`使用了IRLS算法进行参数估计。
+
+- 可以使用伪R方用于非线性模型的拟合优度测量：(分子分母分别为全模型和空模型的对数似然函数值)
+$$\text{pseudo-}R^2 = 1 - \frac{\text{deviance}}{\text{null deviance}} = 1- \frac{\ln(f^{max}_{full})}{\ln(f^{max}_{null})}.$$
+$$\text{deviance} = -2 \times \left[\ln(f^{max}_{saturated}) - \ln(f^{max}_{full}) \right]$$
+$$\text{null deviance} = -2 \times \left[\ln(f^{max}_{saturated}) - \ln(f^{max}_{null}) \right]$$
+
+---
+# 拟合优度
+
+R中glm函数的模型对象返回deviance和null.deviance值，不直接给出**伪R方**值：
+
+```{r}
+pseudoR2 <- 1 - (denylogit2$deviance) / (denylogit2$null.deviance)
+pseudoR2
+```
+
+或者使用笨办法
+
+```{r}
+denylogit_null <- glm(formula = deny ~ 1, 
+                       family = binomial(link = "logit"), 
+                       data = HMDA)
+
+# 用logLik获得模型的对数似然函数值
+1 - logLik(denylogit2)[1]/logLik(denylogit_null)[1]
+```
+
+
+---
+# 实例
+
+在建模之前应该充分检视数据集，确认变量类型是否合适，是否需要转换等。
+
+将lvrat连续变量离散化，在将一些错误因子化的变量数值化：
+$$\begin{align*}
+  lvrat = 
+  \begin{cases}
+    \text{low} & \text{if} \ \ lvrat < 0.8, \\
+    \text{medium} & \text{if} \ \ 0.8 \leq lvrat \leq 0.95, \\
+    \text{high} & \text{if} \ \ lvrat > 0.95
+  \end{cases}
+\end{align*}$$
+
+```{r}
+HMDA$lvrat <- factor(
+  ifelse(HMDA$lvrat < 0.8, "low",
+  ifelse(HMDA$lvrat >= 0.8 & HMDA$lvrat <= 0.95, "medium", "high")),
+  levels = c("low", "medium", "high"))
+
+# convert credit scores to numeric
+HMDA$mhist <- as.numeric(HMDA$mhist)
+HMDA$chist <- as.numeric(HMDA$chist)
+```
+
+---
+# 模型比较
+```{r}
+lpm_HMDA <- lm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+               + insurance + selfemp, data = HMDA)
+logit_HMDA <- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                  + insurance + selfemp, 
+                  family = binomial(link = "logit"), 
+                  data = HMDA)
+probit_HMDA_1 <- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                     + insurance + selfemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+probit_HMDA_2 <- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist + phist 
+                     + insurance + selfemp + single + hschool + unemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+probit_HMDA_3 <- glm(deny ~ black + pirat + hirat + lvrat + chist + mhist 
+                     + phist + insurance + selfemp + single + hschool + unemp + condomin 
+                     + I(mhist==3) + I(mhist==4) + I(chist==3) + I(chist==4) + I(chist==5) 
+                     + I(chist==6), 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+
+probit_HMDA_4 <- glm(deny ~ black * (pirat + hirat) + lvrat + chist + mhist + phist 
+                     + insurance + selfemp + single + hschool + unemp, 
+                     family = binomial(link = "probit"), 
+                     data = HMDA)
+```
+
+---
+# 模型比较表格
+
+```{r eval=F}
+tab_model(lpm_HMDA, logit_HMDA, probit_HMDA_1, probit_HMDA_2, probit_HMDA_3, probit_HMDA_4 , emph.p = T, robust = T,
+          show.ci = F, collapse.se = T, dv.labels = paste0("M", 1:6),string.pred = "Coeffcient", show.se = F,
+          p.style = "a")
+```
+
+也可以使用stargazar
+
+```{r eval=F}
+rob_se <- list(sqrt(diag(vcovHC(lpm_HMDA, type = "HC1"))),
+               sqrt(diag(vcovHC(logit_HMDA, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_1, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_2, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_3, type = "HC1"))),
+               sqrt(diag(vcovHC(probit_HMDA_4, type = "HC1"))))
+
+stargazer(lpm_HMDA, logit_HMDA, probit_HMDA_1, 
+          probit_HMDA_2, probit_HMDA_3, probit_HMDA_4,  
+          digits = 3,
+          type = "latex", 
+          header = FALSE,
+          se = rob_se,
+          model.numbers = FALSE,
+          column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
+```
+
+
+---
+# 预测分析
+计算一个**平均（典型）黑人**的预测值
+```{r}
+new <- data.frame(
+  "pirat" = mean(HMDA$pirat),"hirat" = mean(HMDA$hirat),
+  "lvrat" = "low", "chist" = mean(HMDA$chist),
+  "mhist" = mean(HMDA$mhist),"phist" = "no",
+  "insurance" = "no","selfemp" = "no",
+  "black" = c("no", "yes"),"single" = "no",
+  "hschool" = "yes","unemp" = mean(HMDA$unemp),
+  "condomin" = "no")
+predictions1 <- predict(lpm_HMDA, newdata = new)
+predictions2 <- predict(logit_HMDA, newdata = new, type = "response")
+predictions3 <- predict(probit_HMDA_1, newdata = new, type = "response")
+predictions4 <- predict(probit_HMDA_2, newdata = new, type = "response")
+predictions5 <- predict(probit_HMDA_3, newdata = new, type = "response")
+predictions6 <- predict(probit_HMDA_4, newdata = new, type = "response")
+```
+
+```{r}
+diff <- c(diff(predictions1), diff(predictions2), diff(predictions3),
+  diff(predictions4), diff(predictions5), diff(predictions6))
+names(diff) <- paste0("m", 1:6)
+round(diff*100,4)
+```
+
+---
+# 交互效应
+```{r}
+linearHypothesis(probit_HMDA_4,
+                 test = "F",
+                 c("blackyes:pirat=0", "blackyes:hirat=0"),
+                 vcov = vcovHC, type = "HC1")
+
+```
+
+---
+# 主效应
+```{r}
+linearHypothesis(probit_HMDA_4,
+                 test = "F",
+                 c("blackyes=0", "blackyes:pirat=0", "blackyes:hirat=0"),
+                 vcov = vcovHC, type = "HC1")
+```
+

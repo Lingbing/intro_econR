@@ -1,6 +1,8 @@
 ---
 title: "data.table介绍"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # 数据
@@ -250,3 +252,287 @@ DT[, print(list(c(a,b))), by = ID]
 ```
 
 记住：只要j的返回值是一个`list`对象，那么这个`list`的每个元素都将成为`data.table`返回值的一列。
+
+
+
+# Reference semantics
+
+## `:=`操作符
+1. 用法:LHS:=RHS
+```
+DT[, c("colA", "colB", ...) := list(valA, valB, ...)]
+
+# when you have only one column to assign to you
+# can drop the quotes and list(), for convenience
+DT[, colA := valA]
+```
+
+2. 函数形式
+```
+DT[, `:=`(colA = valA, # valA is assigned to colA
+          colB = valB, # valB is assigned to colB
+          ...
+)]
+```
+
+
+## 用reference增添列变量
+```{r}
+flights[, `:=`(speed = distance / (air_time/60), # speed in mph (mi/h)
+               delay = arr_delay + dep_delay)]   # delay in minutes
+head(flights)
+## alternatively, using the 'LHS := RHS' form
+# flights[, c("speed", "delay") := list(distance/(air_time/60), arr_delay + dep_delay)]
+```
+
+区别在哪？
+1. 生成新变量后不需要将变量增加给`flights`
+2. 两个新列变量已经在新的`flights` data.table里面了。
+3. 使用函数形式的好处是可以在每个增添操作右方作注释。
+
+## sub-assign by reference 
+
+```{r}
+flights[hour == 24L, hour := 0L]
+# := 默认不输出，可以用[]明确输出
+flights[hour == 24L, hour := 0L][]
+```
+
+
+## 删除列 by reference
+```{r}
+flights[, c("delay") := NULL]
+head(flights)
+## or using the functional form
+# flights[, `:=`(delay = NULL)]
+
+## 一个变量操作时，可以
+# flights[, delay := NULL]
+```
+
+## 分组操作by与:=协同
+
+```{r}
+flights[, max_speed := max(speed), by = .(origin, dest)]
+head(flights)
+```
+
+
+## 多列操作与:=
+
+对每个月计算 dep_delay and arr_delay的最大值，并新增两列变量来存储此结果。
+
+```{r}
+in_cols  = c("dep_delay", "arr_delay")
+out_cols = c("max_dep_delay", "max_arr_delay")
+flights[, c(out_cols) := lapply(.SD, max), by = month, .SDcols = in_cols]
+head(flights)
+```
+
+
+# `.SD` 与数据分析
+```{r}
+library(Lahman)
+data(Teams)
+data(Pitching)
+Teams
+Pitching
+```
+
+## `.SD`与未分组数据
+
+如果没有分组by信息，`.SD`的subsetting没有任何效果，返回的是数据本身。
+
+```{r}
+identical(Pitching, Pitching[ , .SD])
+```
+
+## `.SD` 与 `.SDcols`
+
+```{r}
+Pitching[ , .SD, .SDcols = c('W', 'L', 'G')]
+```
+
+
+上面两种操作没有任何实际用处。下面开始有用的。
+
+## 列类型批量转换 (batch-convert)
+
+在数据分析中，经常需要对列（变量）的类型做强制转换，尤其是在character/factor/numeric类型间进行转换。
+
+以下三个变量在原数据中存储类型为character，但应该转换为factor更为合理
+
+```{r}
+# teamIDBR: Team ID used by Baseball Reference website
+# teamIDlahman45: Team ID used in Lahman database version 4.5
+# teamIDretro: Team ID used by Retrosheet
+fkt = c('teamIDBR', 'teamIDlahman45', 'teamIDretro')
+# confirm that they're stored as `character`
+Teams[ , sapply(.SD, is.character), .SDcols = fkt]
+Teams[ , (fkt) := lapply(.SD, factor), .SDcols = fkt]
+# print out the first column to demonstrate success
+head(unique(Teams[[fkt[1L]]]))
+```
+
+(fkt)表示fkt包含的是变量名，不加括号，结果将复制给变量`fkt`
+
+```{r}
+# while .SDcols accepts a logical vector,
+#   := does not, so we need to convert to column
+#   positions with which()
+fkt_idx = which(sapply(Teams, is.factor))
+Teams[ , (fkt_idx) := lapply(.SD, as.character), .SDcols = fkt_idx]
+head(unique(Teams[[fkt_idx[1L]]]))
+# [1] "NA" "NL" "AA" "UA" "PL" "AL"
+```
+
+
+可以使用正则表达式匹配列名
+```{r}
+Teams[ , .SD, .SDcols = patterns('team')]
+team_idx = grep('team', names(Teams), value = TRUE)
+Teams[ , (team_idx) := lapply(.SD, factor), .SDcols = team_idx]
+```
+
+## 分组与`.SD`操作
+
+
+
+```{r}
+Teams[ , .SD[.N], by = teamID]
+```
+
+```{r}
+Teams[ , .SD[which.max(R)], by = teamID]
+```
+
+
+# key 
+
+什么是key。我们首先看一个大家都熟知的概念：行名(rownames)
+
+```{r}
+set.seed(1L)
+DF = data.frame(ID1 = sample(letters[1:2], 10, TRUE),
+                ID2 = sample(1:3, 10, TRUE),
+                val = sample(10),
+                stringsAsFactors = FALSE,
+                row.names = sample(LETTERS[1:10]))
+DF
+rownames(DF)
+DF["C", ]
+```
+
+
+
+```{r}
+DT = as.data.table(DF)
+DT
+rownames(DT)
+```
+
+
+1. data.table从不是用行名。
+2. 如果想保留列名，可以在as.data.table()使用keep.rownames =TRUE设定。
+3. key是超级版的行名：supercharged rownames
+
+## 设置key
+设置key之后，data.table的行将根据reference重新排序（升序）
+
+```{r}
+setkey(flights, origin)
+head(flights)
+
+## alternatively we can provide character vectors to the function 'setkeyv()'
+# setkeyv(flights, "origin") # useful to program with
+```
+
+设置完key之后，i操作将在key上运行。
+
+```{r}
+key(flights)
+flights[.("JFK")]
+flights[c("JFK", "LGA")]    ## same as flights[.(c("JFK", "LGA"))]
+```
+
+
+
+
+## 多列key
+```{r}
+setkey(flights, origin, dest)
+head(flights)
+flights[.("JFK", "MIA")]
+```
+
+## key与j和by协同
+```{r}
+key(flights)
+# [1] "origin" "dest"
+flights[.("LGA", "TPA"), .(arr_delay)]
+```
+
+
+## chaining
+```{r}
+flights[.("LGA", "TPA"), .(arr_delay)][order(-arr_delay)]
+```
+
+## j计算
+```{r}
+flights[.("LGA", "TPA"), max(arr_delay)]
+```
+
+## 分组
+```{r}
+setkey(flights, origin, dest)
+key(flights)
+```
+```{r}
+ans <- flights["JFK", max(dep_delay), keyby = month]
+head(ans)
+```
+
+## 其他参数：`mult`和`nomatch`
+```{r}
+flights[.("JFK", "MIA"), mult = "first"]
+```
+
+
+```{r}
+flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last"]
+```
+
+
+```{r}
+flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", nomatch = NULL]
+```
+
+
+# secondary indices
+
+```{r}
+setindex(flights, origin)
+head(flights)
+## alternatively we can provide character vectors to the function 'setindexv()'
+# setindexv(flights, "origin") # useful to program with
+
+# 'index' attribute added
+names(attributes(flights))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

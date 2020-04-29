@@ -195,7 +195,7 @@ Y_{it} - \overline{Y}_i =& \, \beta_1(X_{it}-\overline{X}_i) + (u_{it} - \overli
 Fatalities_demeaned <- with(Fatalities,
             data.frame(fatal_rate = fatal_rate - ave(fatal_rate, state),
             beertax = beertax - ave(beertax, state)))
-head(Fatalities_demeaned)
+Fatalities_demeaned
 ```
 ]
 .pull-right[
@@ -205,6 +205,15 @@ library(dplyr)
 Fatalities %>% group_by(state) %>% summarize(mean(fatal_rate))
 ```
 ]
+
+---
+# with-in 变换
+```{r}
+Fatalities %>% group_by(state) %>% 
+  mutate(ave_fatal_rate = mean(fatal_rate), ave_beertax = mean(beertax)) %>% 
+  mutate(demeand_fr = fatal_rate - ave_fatal_rate, demeand_bt = beertax - ave_beertax) %>% 
+  select(state, year, demeand_fr, demeand_bt)
+```
 
 ---
 # 应用实例
