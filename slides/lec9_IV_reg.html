@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>工具变量回归</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 工具变量回归
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+# 简介
+
+1. 忽略变量、测量误差和双向因果关系所导致的内生性问题在多变量回归模型框架中难以得到有效的解决。
+
+2. 工具变量法是在内生性情景下获得一致估计量的传统方法。
+
+3. 两阶段最小二乘法（2SLS）是IV回归的直观表达，也非常容易实现和理解。
+
+假设如下模型：
+`$$\begin{align}
+  Y_i = \beta_0 + \beta_1 X_i + u_i \ \ , \ \ i=1,\dots,n 
+\end{align}$$`
+
+`\(X_i\)` 和误差项 `\(\mu_i\)` 相关（X是内生的）。工具变量Z可以帮助我们获得 `\(\beta_1\)` 的一致估计需要满足两个条件：
+
+1. 相关性条件 (instrument relevance condition)
+    `$$\rho_{Z_i,X_i} \neq 0$$`
+
+2. 外生性条件 (Instrument exogeneity condition)
+    `$$\rho_{Z_i,u_i} = 0$$`
+---
+# 二阶段最小二乘步骤
+
+1. 第一阶段回归：
+`$$X_i = \pi_0 + \pi_1 Z_i + \nu_i,$$`
+
+`\(\pi_0 + \pi_1 Z_i\)` 代表X中被Z所解释的部分，$\nu_i$ 是不能被Z解释的部分，因此 `\(\nu_i\)` 与 `\(\mu_i\)` 相关。
+
+被解释部分为：
+`$$\widehat{X}_i=\widehat{\pi_0} + \widehat{\pi_1}Z_i$$`
+
+因为 `\(Z_i\)` 与 `\(\mu_i\)` 不相关 （外生性条件），因此 `\(\widehat{X_i}\)` 与 `\(\mu_i\)` 也不相关。可以用Y对其回归，是为第二阶段回归：
+$$Y_i = \beta_0 + \beta_1 \widehat{X_i} + \mu_i $$
+第二阶段 `\(\beta_1\)` 的估计值称为2SLS估计，可以证明：
+
+`$$\begin{align}
+\widehat{\beta}_1^{TSLS} = \frac{s_{ZY}}{s_{ZX}} = \frac{\frac{1}{n-1}\sum_{i=1}^n(Y_i - \overline{Y})(Z_i - \overline{Z})}{\frac{1}{n-1}\sum_{i=1}^n(X_i - \overline{X})(Z_i - \overline{Z})}
+\end{align}$$`
+
+(*以上是只有一个工具变量的简化情形*)
+
+---
+# 实例
+
+用每包烟的税后平均价格 `\(P_i^{cigarettes}\)` 来解释售出的香烟包数(per capita) `\(Q_i^{cigarettes}\)`。
+
+使用对数获得价格的弹性系数模型。
+
+`$$\begin{align}
+  \log(Q_i^{cigarettes}) = \beta_0 + \beta_1 \log(P_i^{cigarettes}) + u_i, \tag{12.3}
+\end{align}$$`
+
+
+```r
+data("CigarettesSW")
+summary(CigarettesSW)
+&gt;      state      year         cpi          population           packs       
+&gt;  AL     : 2   1985:48   Min.   :1.076   Min.   :  478447   Min.   : 49.27  
+&gt;  AR     : 2   1995:48   1st Qu.:1.076   1st Qu.: 1622606   1st Qu.: 92.45  
+&gt;  AZ     : 2             Median :1.300   Median : 3697472   Median :110.16  
+&gt;  CA     : 2             Mean   :1.300   Mean   : 5168866   Mean   :109.18  
+&gt;  CO     : 2             3rd Qu.:1.524   3rd Qu.: 5901500   3rd Qu.:123.52  
+&gt;  CT     : 2             Max.   :1.524   Max.   :31493524   Max.   :197.99  
+&gt;  (Other):84                                                                
+&gt;      income               tax            price             taxs       
+&gt;  Min.   :  6887097   Min.   :18.00   Min.   : 84.97   Min.   : 21.27  
+&gt;  1st Qu.: 25520384   1st Qu.:31.00   1st Qu.:102.71   1st Qu.: 34.77  
+&gt;  Median : 61661644   Median :37.00   Median :137.72   Median : 41.05  
+&gt;  Mean   : 99878736   Mean   :42.68   Mean   :143.45   Mean   : 48.33  
+&gt;  3rd Qu.:127313964   3rd Qu.:50.88   3rd Qu.:176.15   3rd Qu.: 59.48  
+&gt;  Max.   :771470144   Max.   :99.00   Max.   :240.85   Max.   :112.63  
+&gt; 
+```
+
+该模型无疑有很严重的内生性问题，使用工具变量 SaleTex，每包烟的税额。理由是该变量明显跟香烟的价格（X变量）相关，但是与售出的数量（Y变量）没有直接关系（只通过X产生间接联系）。
+
+```r
+CigarettesSW$rprice &lt;- with(CigarettesSW, price / cpi)
+CigarettesSW$salestax &lt;- with(CigarettesSW, (taxs - tax) / cpi)
+cor(CigarettesSW$salestax, CigarettesSW$price)
+&gt; [1] 0.6141228
+```
+
+---
+# 2SLS
+1. 第一阶段
+
+`$$\log(P_i^{cigarettes}) = \pi_0 + \pi_1 SalesTax_i + \nu_i.$$`
+
+
+```r
+c1995 &lt;- subset(CigarettesSW, year == "1995")
+cig_s1 &lt;- lm(log(rprice) ~ salestax, data = c1995)
+coeftest(cig_s1, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error  t value  Pr(&gt;|t|)    
+&gt; (Intercept) 4.6165463  0.0289177 159.6444 &lt; 2.2e-16 ***
+&gt; salestax    0.0307289  0.0048354   6.3549 8.489e-08 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+模型为：
+
+`$$\widehat{\log(P_i^{cigarettes})} = \underset{(0.03)}{4.62} + \underset{(0.005)}{0.031} SalesTax_i$$`
+
+---
+# 第二阶段
+
+
+```r
+# 第一阶段R方
+summary(cig_s1)$r.squared
+&gt; [1] 0.4709961
+```
+
+
+```r
+lcigp_pred &lt;- cig_s1$fitted.values
+cig_s2 &lt;- lm(log(c1995$packs) ~ lcigp_pred)
+coeftest(cig_s2, vcov = vcovHC)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept)  9.71988    1.70304  5.7074 7.932e-07 ***
+&gt; lcigp_pred  -1.08359    0.35563 -3.0469  0.003822 ** 
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+`$$\begin{align}
+  \widehat{\log(Q_i^{cigarettes})} = \underset{(1.70)}{9.72} + \underset{(0.36)}{1.08} \log(P_i^{cigarettes}), \tag{12.4}
+\end{align}$$`
+
+
+
+
+---
+# 使用`ivreg`
+
+`AER`包中的`ivreg`函数可以直接一步得到2SLS的结果，并且在多个工具变量的情形建模时更加方便。其设定IV的方式为：
+`log(packs) ~ log(rprice) | salestax`
+
+
+```r
+cig_ivreg &lt;- ivreg(log(packs) ~ log(rprice) | salestax, data = c1995)
+coeftest(cig_ivreg, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept)  9.71988    1.52832  6.3598 8.346e-08 ***
+&gt; log(rprice) -1.08359    0.31892 -3.3977  0.001411 ** 
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+- 另外一个使用`ivreg`的原因是其在第二阶段的估计中对参数估计的标准误做了调整。 
+
+- 从上述结果可以看到，虽然两种方法得到的系数估计值相同，大师标准误估计是不同的。
+
+- 从估计结果来看，-1.08的价格弹性系数是可观和显著的。但是本例中没有控制变量，依然有较为严重的OVB问题。
+
+---
+# 广义工具变量回归模型
+`$$\begin{align}
+  Y_i = \beta_0 + \beta_1 X_{1i} + \dots + \beta_k X_{ki} + \beta_{k+1} W_{1i} + \dots + \beta_{k+r} W_{ri} + u_i, \tag{12.5}
+\end{align}$$`
+
+- `\(Y_i\)` 是被解释变量
+
+- `\(X_{1i},\dots,X_{ki}\)` 是k个内生回归变量
+
+- `\(W_{1i},\dots,W_{ri}\)` 是r个与 `\(\mu_i\)` 不相关的外生变量
+
+- `\(Z_{1i},\dots,Z_{mi}\)` 是m个工具变量。
+
+1. 如果工具变量的个数大于内生变量的个数 `\(m &gt; k\)`，称为过度识别模型 (overidentified)
+
+2. `\(m &lt; k\)` 为欠识别 (underidentified)
+
+3. `\(m=k\)` 为恰好识别 (exactly identified)
+
+在IV回归中，我们要求 `\(m \ge k\)`
+
+---
+# `ivreg` 设置IV回归
+
+假设模型为
+`$$Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + W_{1i} + u_i$$`
+内生变量为 `\(X_1\)` 和 `\(X_2\)`，用三个工具变量 `\(Z_1, Z_2, Z_3\)` 进行识别。$W_1$ 是唯一的外生变量。
+
+如下设置IV回归是**错误**的
+
+
+```r
+y ~ x1 + x2 + w1 | z1 + z2 + z3 
+```
+
+`ivreg` 的手册中要求将所有的外生变量也放在工具变量处。如下
+
+
+```r
+y ~ x1 + x2 + w1 | w1 + z1 + z2 + z3
+```
+
+---
+# 广义IV的2SLS过程
+
+1. 第一阶段：
+
+对内生变量集合 `\((X_{1i},\dots,X_{ki})\)`，分别用每一个内生变量对所有工具变量  `\((Z_{1i},\dots,Z_{mi})\)`，所有的外生变量 `\(W_{1i},\dots,W_{ri}\)`，并加入截距项做回归，获得每一个内生变量的拟合值 
+
+`$$(\widehat{X}_{1i},\dots,\widehat{X}_{ki})$$`
+
+2. 第二阶段
+
+用Y对所有内生变量的第一阶段拟合值，加上所有的外生变量和截距项做OLS回归，获得2SLS估计值：
+
+`$$\widehat{\beta}_{0}^{TSLS},\dots,\widehat{\beta}_{k+r}^{TSLS}$$`
+
+---
+# 实例应用
+
+`$$\begin{align}
+  \log(Q_i^{cigarettes}) = \beta_0 + \beta_1 \log(P_i^{cigarettes}) + \beta_2 \log(income_i) + u_i \tag{12.6}
+\end{align}$$`
+
+```r
+CigarettesSW$rincome &lt;- with(CigarettesSW, income / population / cpi)
+c1995 &lt;- subset(CigarettesSW, year == "1995")
+cig_ivreg2 &lt;- ivreg(log(packs) ~ log(rprice) + log(rincome) | log(rincome) + 
+                    salestax, data = c1995)
+coeftest(cig_ivreg2, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept)   9.43066    1.25939  7.4883 1.935e-09 ***
+&gt; log(rprice)  -1.14338    0.37230 -3.0711  0.003611 ** 
+&gt; log(rincome)  0.21452    0.31175  0.6881  0.494917    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+`$$\begin{align}
+  \widehat{\log(Q_i^{cigarettes})} = \underset{(1.26)}{9.42} - \underset{(0.37)}{1.14} \log(P_i^{cigarettes}) + \underset{(0.31)}{0.21} \log(income_i). \tag{12.7}
+\end{align}$$`
+---
+# 过度识别：增加一个工具变量
+
+```r
+CigarettesSW$cigtax &lt;- with(CigarettesSW, tax/cpi)
+c1995 &lt;- subset(CigarettesSW, year == "1995")
+cig_ivreg3 &lt;- ivreg(log(packs) ~ log(rprice) + log(rincome) | 
+                    log(rincome) + salestax + cigtax, data = c1995)
+coeftest(cig_ivreg3, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept)   9.89496    0.95922 10.3157 1.947e-13 ***
+&gt; log(rprice)  -1.27742    0.24961 -5.1177 6.211e-06 ***
+&gt; log(rincome)  0.28040    0.25389  1.1044    0.2753    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+所有参数估计的标准误都变小了，因为我们使用了更多的信息（多了一个工具变量）。即便如此，我们依然无法确定两个工具变量是否合适。
+
+`$$\begin{align}
+  \widehat{\log(Q_i^{cigarettes})} = \underset{(0.96)}{9.89} - \underset{(0.25)}{1.28} \log(P_i^{cigarettes}) + \underset{(0.25)}{0.28} \log(income_i). \tag{12.8}
+\end{align}$$`
+
+---
+# 工具变量的有效性
+
+- weak instruments (弱工具变量)：如果工具变量与X的相关性很弱，则称工具变量为弱工具变量，会导致估计有偏，估计量的分布严重偏离正态分布，t检验失效等。
+
+- **经验方法**判断IV是否是弱工具变量：查看第一阶段回归的F值，如果F值大于10
+
+如果工具变量是弱IV该怎么办？
+
+1. 丢弃弱IV，重新找寻新的强IV。
+
+2. 使用弱IV，但是使用更加稳健的估计方法，比如 Limited Information Maximum Likehood Estimation. 
+
+---
+# 工具变量的外生性假设
+
+- 如果工具变量与误差项相关，则其外生性假设失效，IV回归不再是一致估计。
+
+- Overidentification restrictions test (J-test) 用来检验额外的工具变量是否是外生的。
+
+- J-test的前提是过度识别，也就是工具变量的个数大于内生变量的个数。
+
+`$$\begin{align}
+  \widehat{u}_i^{TSLS} =&amp; \, \delta_0 + \delta_1 Z_{1i} + \dots + \delta_m Z_{mi} + \delta_{m+1} W_{1i} + \dots + \delta_{m+r} W_{ri} + e_i \tag{12.9}
+\end{align}$$`
+
+检验原假设(所有工具变量均满足外生性条件)：
+
+`$$H_0: \delta_1 = 0, \dots, \delta_{m} = 0$$`
+这是一个典型使用F检验的场景。
+
+---
+# 实例
+
+使用FD模型如下：
+
+`$$\begin{align}
+  \log(Q_{i,1995}^{cigarettes}) - \log(Q_{i,1985}^{cigarettes}) =&amp; \, \beta_0 + \beta_1 \left[\log(P_{i,1995}^{cigarettes}) - \log(P_{i,1985}^{cigarettes}) \right] \\ &amp;+ \beta_2 \left[\log(income_{i,1995}) - \log(income_{i,1985})\right] + u_i. 
+\end{align}$$`
+
+
+
+```r
+# 生成相应变量
+
+c1985 &lt;- subset(CigarettesSW, year == "1985")
+packsdiff &lt;- log(c1995$packs) - log(c1985$packs)
+pricediff &lt;- log(c1995$price/c1995$cpi) - log(c1985$price/c1985$cpi)
+incomediff &lt;- log(c1995$income/c1995$population/c1995$cpi) -
+log(c1985$income/c1985$population/c1985$cpi)
+salestaxdiff &lt;- (c1995$taxs - c1995$tax)/c1995$cpi - (c1985$taxs - c1985$tax)/c1985$cpi
+cigtaxdiff &lt;- c1995$tax/c1995$cpi - c1985$tax/c1985$cpi
+```
+
+---
+# 三种IV回归比较
+
+
+```r
+cig_ivreg_diff1 &lt;- ivreg(packsdiff ~ pricediff + incomediff | incomediff + 
+                         salestaxdiff)
+cig_ivreg_diff2 &lt;- ivreg(packsdiff ~ pricediff + incomediff | incomediff + 
+                         cigtaxdiff)
+cig_ivreg_diff3 &lt;- ivreg(packsdiff ~ pricediff + incomediff | incomediff + 
+                         salestaxdiff + cigtaxdiff)
+coeftest(cig_ivreg_diff1, vcov = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;              Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) -0.117962   0.068217 -1.7292   0.09062 .  
+&gt; pricediff   -0.938014   0.207502 -4.5205 4.454e-05 ***
+&gt; incomediff   0.525970   0.339494  1.5493   0.12832    
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# IV回归模型比较
+
+```r
+tab_model(cig_ivreg_diff1, cig_ivreg_diff2, cig_ivreg_diff3, vcov.fun = "vcovHC", vcov.type = "HC1",
+          emph.p = T, robust = T, show.ci = F, show.intercept = F,
+          collapse.se = T, dv.labels = paste0("IV", 1:3),
+          string.pred = "Coeffcient", show.se = F,
+          p.style = "a")
+```
+
+&lt;table style="border-collapse:collapse; border:none;"&gt;
+&lt;tr&gt;
+&lt;th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; "&gt;&amp;nbsp;&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;IV1&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;IV2&lt;/th&gt;
+&lt;th colspan="1" style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm; "&gt;IV3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  text-align:left; "&gt;Coeffcient&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;td style=" text-align:center; border-bottom:1px solid; font-style:italic; font-weight:normal;  "&gt;Estimates&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;pricediff&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-0.94 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.23)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-1.34 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.28)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;-1.20 &lt;sup&gt;***&lt;/sup&gt;&lt;br&gt;(0.23)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; "&gt;incomediff&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.53 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.37)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.43 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.33)&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "&gt;0.46 &lt;sup&gt;&lt;/sup&gt;&lt;br&gt;(0.34)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm; border-top:1px solid;"&gt;Observations&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;48&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;48&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left; border-top:1px solid;" colspan="1"&gt;48&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;"&gt;R&lt;sup&gt;2&lt;/sup&gt; / R&lt;sup&gt;2&lt;/sup&gt; adjusted&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.550 / 0.530&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.520 / 0.498&lt;/td&gt;
+&lt;td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="1"&gt;0.547 / 0.526&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td colspan="4" style="font-style:italic; border-top:double black; text-align:right;"&gt;* p&amp;lt;0.05&amp;nbsp;&amp;nbsp;&amp;nbsp;** p&amp;lt;0.01&amp;nbsp;&amp;nbsp;&amp;nbsp;*** p&amp;lt;0.001&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;/table&gt;
+
+---
+# 工具变量有效性
+
+```r
+mod_relevance1 &lt;- lm(pricediff ~ salestaxdiff + incomediff)
+mod_relevance2 &lt;- lm(pricediff ~ cigtaxdiff + incomediff)
+mod_relevance3 &lt;- lm(pricediff ~ incomediff + salestaxdiff + cigtaxdiff)
+linearHypothesis(mod_relevance1, 
+                 "salestaxdiff = 0", 
+                 vcov = vcovHC, type = "HC1")
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; salestaxdiff = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: pricediff ~ salestaxdiff + incomediff
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F    Pr(&gt;F)    
+&gt; 1     46                        
+&gt; 2     45  1 28.445 3.009e-06 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# 过度识别限制检验 J-test
+
+使用模型-3，因为它是唯一过度识别的IV模型。
+
+取出模型-3的残差，并将其与所有的工具变量和外生变量进行回归。
+
+
+
+```r
+cig_iv_OR &lt;- lm(residuals(cig_ivreg_diff3) ~ incomediff + salestaxdiff + cigtaxdiff)
+
+cig_OR_test &lt;- linearHypothesis(cig_iv_OR, 
+                               c("salestaxdiff = 0", "cigtaxdiff = 0"), 
+                               test = "Chisq")
+cig_OR_test
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; salestaxdiff = 0
+&gt; cigtaxdiff = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: residuals(cig_ivreg_diff3) ~ incomediff + salestaxdiff + cigtaxdiff
+&gt; 
+&gt;   Res.Df     RSS Df Sum of Sq Chisq Pr(&gt;Chisq)  
+&gt; 1     46 0.37472                                
+&gt; 2     44 0.33695  2  0.037769 4.932    0.08492 .
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# p值调整
+此处，`linearHypothesis`汇报的p值是错误的，因为其使用的自由度为2，而实际应该为
+`$$m-k=2-1=1$$`
+如下，我们可以手动计算p值进行调整：
+
+
+```r
+pchisq(cig_OR_test[2, 5], df = 1, lower.tail = FALSE)
+&gt; [1] 0.02636406
+```
+
+因此我们可以在5%的显著性水平下拒绝原假设（工具变量是外生的）。也就意味着：
+
+1. sale taxshi per-pack price的无效IV
+
+2. cigarettes-specific sales tax 是per-pack price的无效IV
+
+3. 两个IV都是无效的。
+
+教材12.4节指出，general sale tax作为一个IV的有效应可能是成立的。因此长期弹性的估计值-0.94是可信的。
+
+教材12.5详述了集中寻找有效IV的场景，请仔细阅读理解。
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

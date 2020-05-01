@@ -6,7 +6,6 @@
     <meta name="author" content="冯凌秉" />
     <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
     <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
-    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
     <link rel="stylesheet" href="zh-CN.css" type="text/css" />
   </head>
   <body>
@@ -29,233 +28,7 @@ i是截面上的索引下标，t是时间索引下标。
 ```r
 library(AER)
 data(Fatalities)
-kable(head(Fatalities, 5)) %&gt;%
-  kable_styling() %&gt;%
-  scroll_box(width = "100%", height = "200px")
 ```
-
-&lt;div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; "&gt;&lt;table class="table" style="margin-left: auto; margin-right: auto;"&gt;
- &lt;thead&gt;
-  &lt;tr&gt;
-   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; state &lt;/th&gt;
-   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; year &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; spirits &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; unemp &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; income &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; emppop &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; beertax &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; baptist &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; mormon &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; drinkage &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; dry &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; youngdrivers &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; miles &lt;/th&gt;
-   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; breath &lt;/th&gt;
-   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; jail &lt;/th&gt;
-   &lt;th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"&gt; service &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; sfatal &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal1517 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal1517 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal1820 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal1820 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; fatal2124 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; nfatal2124 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; afatal &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop1517 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop1820 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; pop2124 &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; milestot &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; unempus &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; emppopus &lt;/th&gt;
-   &lt;th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"&gt; gsp &lt;/th&gt;
-  &lt;/tr&gt;
- &lt;/thead&gt;
-&lt;tbody&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1982 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.37 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 14.4 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 10544.15 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 50.69204 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.539379 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 30.3557 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.32829 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 25.0063 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.211572 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7233.887 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 839 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 146 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 99 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 53 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 99 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 34 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 120 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 32 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 309.438 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 3942002 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 208999.6 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 221553.4 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 290000.1 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 28516 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 9.7 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 57.8 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -0.0221248 &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1983 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.36 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 13.7 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 10732.80 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 52.14703 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.788991 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 30.3336 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.34341 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 22.9942 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.210768 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7836.348 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 930 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 154 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 98 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 71 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 108 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 26 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 124 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 35 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 341.834 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 3960008 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 202000.1 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 219125.5 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 290000.2 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 31032 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 9.6 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 57.9 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.0465583 &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1984 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.32 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 11.1 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 11108.79 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 54.16809 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.714286 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 30.3115 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.35924 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 19.00 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 24.0426 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.211484 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 8262.990 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 932 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 165 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 94 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 49 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 103 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 25 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 118 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 34 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 304.872 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 3988992 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 197000.0 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 216724.1 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 288000.2 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 32961 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7.5 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 59.5 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.0627978 &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1985 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.28 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 8.9 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 11332.63 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 55.27114 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.652542 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 30.2895 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.37579 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 19.67 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 23.6339 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.211140 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 8726.917 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 882 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 146 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 98 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 66 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 100 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 23 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 114 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 45 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 276.742 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 4021008 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 194999.7 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 214349.0 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 284000.3 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 35091 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7.2 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 60.1 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.0274900 &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; al &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1986 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.23 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 9.8 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 11661.51 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 56.51450 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1.609907 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 30.2674 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.39311 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 21.00 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 23.4647 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.213400 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 8952.854 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; no &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1081 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 172 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 119 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 82 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 10 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 120 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 23 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 119 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 29 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 360.716 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 4049994 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 203999.9 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 212000.0 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 263000.3 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 36259 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 7.0 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 60.7 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.0321429 &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;&lt;/div&gt;
 ---
 # 实例：酒精税与交通事故死亡率
 
@@ -294,7 +67,7 @@ plot(x = Fatalities1982$beertax,
 abline(fatal1982_mod, lwd = 1.5)
 ```
 
-&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-3-1.png" width="504" /&gt;
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-16-1.png" width="504" /&gt;
 
 ]
 
@@ -310,7 +83,7 @@ plot(x = Fatalities1988$beertax,
 abline(fatal1988_mod, lwd = 1.5)
 ```
 
-&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-4-1.png" width="504" /&gt;
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-17-1.png" width="504" /&gt;
 
 ]
 
@@ -366,7 +139,7 @@ mean(Fatalities$fatal_rate)
 
 .pull-right[
 
-&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+&lt;img src="lec7_panel_reg_files/figure-html/unnamed-chunk-20-1.png" width="504" /&gt;
 
 ]
 

@@ -43,20 +43,13 @@ class: center, middle, inverse, title-slide
 ```r
 data(HMDA)
 head(HMDA)
-&gt;   deny pirat hirat     lvrat chist mhist phist unemp selfemp insurance condomin
-&gt; 1   no 0.221 0.221 0.8000000     5     2    no   3.9      no        no       no
-&gt; 2   no 0.265 0.265 0.9218750     2     2    no   3.2      no        no       no
-&gt; 3   no 0.372 0.248 0.9203980     1     2    no   3.2      no        no       no
-&gt; 4   no 0.320 0.250 0.8604651     1     2    no   4.3      no        no       no
-&gt; 5   no 0.360 0.350 0.6000000     1     1    no   3.2      no        no       no
-&gt; 6   no 0.240 0.170 0.5105263     1     1    no   3.9      no        no       no
-&gt;   afam single hschool
-&gt; 1   no     no     yes
-&gt; 2   no    yes     yes
-&gt; 3   no     no     yes
-&gt; 4   no     no     yes
-&gt; 5   no     no     yes
-&gt; 6   no     no     yes
+&gt;   deny pirat hirat     lvrat chist mhist phist unemp selfemp insurance condomin afam single hschool
+&gt; 1   no 0.221 0.221 0.8000000     5     2    no   3.9      no        no       no   no     no     yes
+&gt; 2   no 0.265 0.265 0.9218750     2     2    no   3.2      no        no       no   no    yes     yes
+&gt; 3   no 0.372 0.248 0.9203980     1     2    no   3.2      no        no       no   no     no     yes
+&gt; 4   no 0.320 0.250 0.8604651     1     2    no   4.3      no        no       no   no     no     yes
+&gt; 5   no 0.360 0.350 0.6000000     1     1    no   3.2      no        no       no   no     no     yes
+&gt; 6   no 0.240 0.170 0.5105263     1     1    no   3.9      no        no       no   no     no     yes
 ```
 
 `$$\begin{align}
@@ -83,7 +76,7 @@ denymod1
 
 ---
 # 拟合效果
-&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-3-1.png" width="504" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-14-1.png" width="504" style="display: block; margin: auto;" /&gt;
 
 ---
 # 估计模型
@@ -189,7 +182,7 @@ coeftest(denyprobit, vcov. = vcovHC, type = "HC1")
 ---
 # Probit 模型拟合图
 .pull-left[
-&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-18-1.png" width="504" /&gt;
 ]
 
 .pull-right[
@@ -246,7 +239,7 @@ fx &lt;- function(x) 1/(1+exp(-x))
 curve(fx, -10, 10)
 ```
 
-&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-20-1.png" width="504" /&gt;
 
 ]
 
@@ -302,7 +295,7 @@ coeftest(denylogit2, vcov. = vcovHC, type = "HC1")
 ---
 # Probit 和 Logit 比较
 
-&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-12-1.png" width="504" style="display: block; margin: auto;" /&gt;
+&lt;img src="lec8_logit_reg_files/figure-html/unnamed-chunk-23-1.png" width="504" style="display: block; margin: auto;" /&gt;
 
 ---
 # Logit 回归模型系数解释

@@ -46,9 +46,6 @@ i是截面上的索引下标，t是时间索引下标。
 ```{r}
 library(AER)
 data(Fatalities)
-kable(head(Fatalities, 5)) %>%
-  kable_styling() %>%
-  scroll_box(width = "100%", height = "200px")
 ```
 ---
 # 实例：酒精税与交通事故死亡率

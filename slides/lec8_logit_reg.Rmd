@@ -131,6 +131,8 @@ $$\begin{align}
   \widehat{deny} =& \, -\underset{(0.029)}{0.091} + \underset{(0.089)}{0.559} P/I \ ratio + \underset{(0.025)}{0.177} black. \tag{11.3}
 \end{align}$$
 
+$$
+cdf = F(Z) = \int_{-\infty}^Z p(z) dz= \int_{-\infty}^Z \frac{1}{\sqrt{2\pi}}e^{\frac{-z^2}{2}}$$
 ---
 # 线性概率模型的问题
 
