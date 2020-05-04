@@ -1,0 +1,171 @@
+---
+title: "forcats 教程"
+output:
+  html_document:
+    df_print: paged
+---
+
+主要参考资料：
+1. https://forcats.tidyverse.org/articles/forcats.html
+2. https://stat545.com/factors-boss.html
+
+
+R中存储分类型变量的类叫做factor，但是base R中处理因子类比较繁琐。
+
+`forcats` 是tidyverse家族的成员，提供了一整套处理因子类型数据的函数。“玩”好factor类型对于数据探索性分析具有重要意义，能够熟练的使用`forcats`处理因子类型的数据将使得数据分析事半功倍。
+
+首先加载包
+```{r}
+library(dplyr)
+library(ggplot2)
+library(forcats)
+```
+
+# 数据
+研究数据及statwars。
+```{r}
+data("starwars")
+starwars
+```
+
+假设我们关心角色的“头发颜色” (hair_color 变量)
+
+
+```{r}
+class(starwars$hair_color)
+ggplot(starwars, aes(x = hair_color)) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+现阶段，hari_color是一个没有排序的分类变量。我们希望用它的类别出现的频数分类排序，可以使用`fct_infreq()` 函数：
+
+# factor into frequency
+
+```{r}
+ggplot(starwars, aes(x = fct_infreq(hair_color))) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+`fct_infreq()` 默认将NA类放在最上面。我们应该想办法处理NA类。
+```{r}
+fct_infreq(starwars$hair_color)
+```
+
+
+# level组合
+
+有时候某个变量的level太多，一些level只出现了很少的此处，那么我们可能想把一些罕见的level放在一起处理。使用`fct_lump()`函数：
+```{r}
+starwars %>%
+  count(skin_color, sort = TRUE)
+```
+```{r}
+starwars %>%
+  mutate(skin_color = fct_lump(skin_color, n = 5)) %>%
+  count(skin_color, sort = TRUE)
+```
+n=5表示只保留频数最高的五个level，将其他level组合放在第六个other level中。也可以使用prop代替n指定lump的最低频率（而不是频数）：
+```{r}
+starwars %>%
+  mutate(skin_color = fct_lump(skin_color, prop = .1)) %>%
+  count(skin_color, sort = TRUE)
+
+```
+
+默认lump的多余level命名为other，你也可以自命名：
+```{r}
+starwars %>%
+  mutate(skin_color = fct_lump(skin_color, prop = .1, other_level = "extra")) %>%
+  count(skin_color, sort = TRUE)
+```
+
+# 联合使用
+```{r}
+avg_mass_eye_color <- starwars %>%
+  mutate(eye_color = fct_lump(eye_color, n = 6)) %>%
+  group_by(eye_color) %>%
+  summarise(mean_mass = mean(mass, na.rm = TRUE))
+
+avg_mass_eye_color %>%
+  mutate(eye_color = fct_reorder(eye_color, mean_mass)) %>%
+  ggplot(aes(x = eye_color, y = mean_mass)) + 
+  geom_col()
+```
+
+# fct_reorder与ggplot
+
+reorder之后的bat plot，dot plot等更加直观。
+
+```{r}
+library(gapminder)
+gap_asia_2007 <- gapminder %>% filter(year == 2007, continent == "Asia")
+ggplot(gap_asia_2007, aes(x = lifeExp, y = country)) + geom_point()
+ggplot(gap_asia_2007, aes(x = lifeExp, y = fct_reorder(country, lifeExp))) +
+  geom_point()
+```
+
+fct_reorder2与ggplot图的color映射可以绘制更直观的图例：
+
+```{r}
+h_countries <- c("Egypt", "Haiti", "Romania", "Thailand", "Venezuela")
+h_gap <- gapminder %>%
+  filter(country %in% h_countries) %>% 
+  droplevels()
+ggplot(h_gap, aes(x = year, y = lifeExp, color = country)) +
+  geom_line()
+ggplot(h_gap, aes(x = year, y = lifeExp,
+                  color = fct_reorder2(country, year, lifeExp))) +
+  geom_line() +
+  labs(color = "country")
+```
+
+
+# relevel
+```{r}
+h_gap$country %>% levels()
+
+h_gap$country %>% fct_relevel("Romania", "Haiti") %>% levels()
+```
+
+# recode
+```{r}
+i_gap <- gapminder %>% 
+  filter(country %in% c("United States", "Sweden", "Australia")) %>% 
+  droplevels()
+i_gap$country %>% levels()
+
+i_gap$country %>%
+  fct_recode("USA" = "United States", "Oz" = "Australia") %>% levels()
+```
+
+# combine factors
+不可以用`c`函数组合factors，level会全部丢失。应该使用`fct_c`：
+
+```{r}
+df1 <- gapminder %>%
+  filter(country %in% c("United States", "Mexico"), year > 2000) %>%
+  droplevels()
+df2 <- gapminder %>%
+  filter(country %in% c("France", "Germany"), year > 2000) %>%
+  droplevels()
+levels(df1$country)
+c(df1$country, df2$country)
+```
+
+```{r}
+fct_c(df1$country, df2$country)
+```
+
+
+
+
+
+
+
+
+
+
+
+

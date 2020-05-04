@@ -389,8 +389,21 @@ filter(players, teamID != lag(teamID))
 - 自学后三种动作，现实中用的不太多，了解滞后，可以需要的时候再查阅帮助文档。但以上操作应该烂熟于胸。
 
 
+# 练习
+```{r}
+library(gapminder)
+library(dplyr)
+(my_gap <- gapminder)
+```
 
+```{r}
+my_gap %>%
+  filter(year %in% c(1952, 2007)) %>%
+  group_by(continent, year) %>%
+  summarize_at(vars(lifeExp, gdpPercap), list(~mean(.), ~median(.)))
+```
 
+summarize有很多方便函数，主要包括：summarize_all(), summarize_at(), summarize_if().
 
 
 
