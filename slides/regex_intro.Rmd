@@ -1,0 +1,142 @@
+---
+title: "正则表达式与字符串处理"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(gapminder)
+library(stringr)
+```
+
+# 正则表达式
+
+## 基本思想
+
+正则表达式通过“表达式”(expression)的形式来匹配(match)字符串中的*模式*(pattern)。
+
+这些表达式由元字符(metacharacter)和位置符(anchors)等组合而成。
+
+## 元字符
+
+最常见的元字符是`.`，表示除了换行符(用`\n`表示)以外的任意*一个*字符。
+
+比如正则表达式`a.b`表示任意字符包含三个字母以a开头以b结尾中间可以是任一字母。
+
+```{r}
+countries <- levels(gapminder$country)
+head(countries)
+str_subset(countries, pattern = "i.a")
+```
+
+## 位置符
+
+以上返回的国家名中均包含`a.b`的pattern。但是可以看到这个pattern可以出现在country name的任意位置。如果想限定位置，就要用到位置符(anchors，锚)，表示pattern在字符串中发生的位置。最常见的两个anchors是`^`表示字符串的起始位置，`$`表示结束位置。
+
+```{r}
+str_subset(countries, pattern = "i.a$")
+str_subset(countries, pattern = "^C")
+```
+
+元字符`\b`表示单词边界(word boundary)
+```{r}
+str_subset(fruit, pattern = "melon")
+str_subset(fruit, pattern = "\\bmelon")
+```
+
+[多出来的`\`在R中是escaping转义操作符。]
+
+元字符`\B`表示非单词边界(NOT a word boundary)
+```{r}
+str_subset(fruit, pattern = "\\Bmelon")
+```
+
+## 字符类(character classes) 
+
+`[ ]`中的表示明确需要匹配中括号内的字符。
+
+```{r}
+str_subset(countries, pattern = "[nls]ia$")
+```
+
+- 使用`^`搭配字符类表示（否）negate操作
+```{r}
+str_subset(countries, pattern = "[^nls]ia$")
+```
+
+元字符`\s`或`[:space:]`（POSIX类）匹配空格
+```{r}
+(my_fruit <- str_subset(fruit, pattern = "fruit"))
+str_split_fixed(my_fruit, pattern = "\\s", n = 2)
+```
+
+
+- 用`[:punct:]`匹配标点符号：
+```{r}
+str_subset(countries, "[[:punct:]]")
+```
+
+## 数量符(quantifiers)
+
+`*`表示0或者多次，`+`表示1或者多次，`?`表示0或者1次。`{n}`表示n次，`{n,}`表示至少n次，`{,m}`表示至多m次，`{n,m}`表示在n次和m次之间（包括）.
+
+```{r}
+(matches <- str_subset(fruit, pattern = "l.*e"))
+list(match = intersect(matches, str_subset(fruit, pattern = "l.+e")),
+     no_match = setdiff(matches, str_subset(fruit, pattern = "l.+e")))
+```
+
+```{r}
+list(match = intersect(matches, str_subset(fruit, pattern = "l.?e")),
+     no_match = setdiff(matches, str_subset(fruit, pattern = "l.?e")))
+```
+
+
+## 转义操作escaping
+
+这些符号在正则表达式中都有特殊含义`$ * + . ? [ ] ^ { } | ( ) \`，如果我们想匹配的恰恰是这些符号中就应该进行转义。转义操作符是backslash `\`
+
+转义在R中更为特殊，因为正则表达式在R中先通过`\`转移成字符再被当做正则表达式处理，如果还要转义，就要用两个：`\\`。
+
+- 在quotes中转义quotes，需要用一个`\`。直接适用双引号会报错：
+
+```{r eval=F}
+cat("Do you use "airquotes" much?")
+```
+```{r}
+cat("Do you use \"airquotes\" much?")
+```
+
+但是，也可以使用单双引号组合以避免`\`的使用：
+
+```{r}
+cat('Do you use "airquotes" much?')
+```
+以下代码并不能匹配到名称中有`.`的，因为它有明确的正则表达式含义。如需匹配则需要先进行转义：
+```{r}
+str_subset(countries, pattern = ".")
+```
+
+```{r}
+str_subset(countries, pattern = "\\.")
+```
+
+另外一个匹配中括号`[`的例子：
+```{r}
+(x <- c("whatever", "X is distributed U[0,1]"))
+str_subset(x, pattern = "\\[")
+```
+
+## 其他参考资料
+
+正则表达式可以非常复杂，学习起来难度很大。在掌握基本概念的基础上，应该结合实际数据分析任务多多探索和练习。提供额外参考阅读材料如下：
+
+1. https://r4ds.had.co.nz/strings.html
+
+
+
+
+
+
+
