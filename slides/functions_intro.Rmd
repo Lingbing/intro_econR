@@ -1,0 +1,45 @@
+---
+title: "编写R函数"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(gapminder)
+```
+
+## 检查输入参数
+
+### stop if not
+
+```{r eval=F}
+mmm <- function(x) {
+  stopifnot(is.numeric(x))
+  max(x) - min(x)
+}
+mmm(1:109)
+mmm(c(TRUE, TRUE, FALSE, TRUE, TRUE))
+```
+
+### if then stop
+
+`stopifnot()`给出的错误信息并不友好。可以用`stop()`函数结合if条件自定义错误信息。
+
+```{r}
+mmm2 <- function(x) {
+  if(!is.numeric(x)) {
+    stop('I am so sorry, but this function only works for numeric input!\n',
+         'You have provided an object of class: ', class(x)[1])
+  }
+  max(x) - min(x)
+}
+mmm2(gapminder)
+```
+
+## 参数名与参数位置
+
+## 参数默认值
+
+## `...`参数
+
+## Unit test
