@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>回归断点设计</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 回归断点设计
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+
+# RDD原理
+
+模型
+
+`$$\begin{align}
+  Y_i =&amp; \beta_0 + \beta_1 X_i + \beta_2 W_i + u_i \tag{13.12}
+\end{align}$$`
+
+令
+
+`$$\begin{align*}
+X_i =&amp; 
+  \begin{cases}
+    1, &amp; W_i \geq c \\
+    0, &amp; W_i &lt; c
+  \end{cases}
+\end{align*}$$`
+
+处理与否取决于连续变量 `\(W_i\)` 的取值是否超过阈值 `\(c\)`。变量W称为 running variable。
+
+回归断点设计的主要思路是利用 `\(W_i=c\)` 附近的观测值具有相似的特性，但是由于阈值的存在而分别进入了处理组和控制组。因此 `\(\beta_1\)` 是对于这一小部分观测值的因果效应的估计。
+
+此处的RDD也称为 sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
+
+---
+# RDD 假设
+
+RDD的关键假设是：
+
+- 断点左侧 (marginally below the threshold) 附近的个体必须是断点右侧接受干预个体的有效反事实样本 (valid counterfactual)。[Hahn et al. (2001); Lee (2008)]
+
+满足这个假设有两方面的挑战：
+
+1. 在很多场景下，个体对他们的得分能够施加影响
+
+2. 这本身是一个不可检验的假设 (untestable assumption)
+
+---
+# RDD 数据模拟
+.pull-left[
+- 在0处模拟一个sharp RDD场景
+
+- RDD效应值为2
+
+- 使用`rddtools`包方便画图
+
+
+```r
+W &lt;- runif(1000, -1, 1)
+y &lt;- 3 + 2 * W + 10 * (W&gt;=0) + rnorm(1000)
+library(rddtools)
+rdddata &lt;- rdd_data(y, W, cutpoint = 0)
+plot(rdddata,
+     col = "steelblue",
+     cex = 0.35, 
+     xlab = "W", 
+     ylab = "Y")
+```
+]
+
+
+.pull-right[
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;
+]
+
+---
+# RDD 拟合及展示
+
+.pull-left[
+
+```r
+rdd_mod &lt;- rdd_reg_lm(rdd_object = rdddata, 
+                      slope = "same")
+summary(rdd_mod)
+&gt; 
+&gt; Call:
+&gt; lm(formula = y ~ ., data = dat_step1, weights = weights)
+&gt; 
+&gt; Residuals:
+&gt;     Min      1Q  Median      3Q     Max 
+&gt; -3.6445 -0.6478 -0.0130  0.6678  3.1830 
+&gt; 
+&gt; Coefficients:
+&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)  2.90358    0.07239   40.11   &lt;2e-16 ***
+&gt; D           10.15692    0.12738   79.74   &lt;2e-16 ***
+&gt; x            1.81421    0.11196   16.20   &lt;2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; 
+&gt; Residual standard error: 1.008 on 997 degrees of freedom
+&gt; Multiple R-squared:  0.9725,	Adjusted R-squared:  0.9725 
+&gt; F-statistic: 1.764e+04 on 2 and 997 DF,  p-value: &lt; 2.2e-16
+```
+]
+.pull-right[
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-4-1.png" width="504" /&gt;
+
+]
+
+---
+# Fuzzy RDD 及模拟
+
+
+
+.pull-left[
+如果超越阈值并不是接受干预的唯一原因，那么sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
+
+`$$\begin{align*}
+  Z_i = \begin{cases}
+    1, &amp; W_i \geq c \\
+    0, &amp; W_i &lt; c,
+  \end{cases}
+\end{align*}$$`
+
+`\(Z_i\)` 对 `\(Y_i\)` 的影响只通过干预变量 `\(X_i\)`。因此 `\(Z_i\)` 是 `\(X_i\)` 的工具变量。
+
+```r
+library(MASS)
+mu &lt;- c(0, 0)
+sigma &lt;- matrix(c(1, 0.7, 0.7, 1), ncol = 2)
+set.seed(1234)
+d &lt;- as.data.frame(mvrnorm(2000, mu, sigma))
+colnames(d) &lt;- c("W", "Y")
+d$treatProb &lt;- ifelse(d$W &lt; 0, 0, 0.8)
+fuzz &lt;- sapply(X = d$treatProb, FUN = function(x) rbinom(1, 1, prob = x))
+d$Y &lt;- d$Y + fuzz * 2
+```
+]
+.pull-right[
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-6-1.png" width="504" /&gt;
+
+]
+
+---
+# Fuzzy Rdd 估计
+
+
+```r
+data &lt;- rdd_data(d$Y, d$W, 
+                 cutpoint = 0, 
+                 z = d$treatProb)
+frdd_mod &lt;- rdd_reg_lm(rdd_object = data, 
+                       slope = "same")
+frdd_mod
+&gt; ### RDD regression: parametric ###
+&gt; 	Polynomial order:  1 
+&gt; 	Slopes:  same 
+&gt; 	Number of obs: 2000 (left: 999, right: 1001)
+&gt; 
+&gt; 	Coefficient:
+&gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; D 1.981297   0.084696  23.393 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# Fuzzy RDD 拟合图
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-8-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+# Fuzzy 情形错用 SRDD
+
+此处，如果错用简单RDD估计Fuzzy RDD数据，将导致因果效应被低估：
+
+
+```r
+data &lt;- rdd_data(d$Y, 
+                 d$W, 
+                 cutpoint = 0)
+srdd_mod &lt;- rdd_reg_lm(rdd_object = data, 
+                       slope = "same")
+srdd_mod
+&gt; ### RDD regression: parametric ###
+&gt; 	Polynomial order:  1 
+&gt; 	Slopes:  same 
+&gt; 	Number of obs: 2000 (left: 999, right: 1001)
+&gt; 
+&gt; 	Coefficient:
+&gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; D 1.585038   0.067756  23.393 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# Sharp RDD 实例 (Lee, 2008)
+
+```r
+data(house)
+head(house, 5)
+&gt;         x      y
+&gt; 1  0.1049 0.5810
+&gt; 2  0.1393 0.4611
+&gt; 3 -0.0736 0.5434
+&gt; 4  0.0868 0.5846
+&gt; 5  0.3994 0.5803
+```
+设定rdd data:
+
+```r
+rdd_dat &lt;- rdd_data(x=x, y=y, cutpoint=0, data=house)
+```
+
+rdd参数估计
+
+```r
+house_reg1 &lt;- rdd_reg_lm(rdd_dat)
+```
+
+---
+# RDD 估计结果
+.pull-left[
+
+```r
+house_reg1
+&gt; ### RDD regression: parametric ###
+&gt; 	Polynomial order:  1 
+&gt; 	Slopes:  separate 
+&gt; 	Number of obs: 6558 (left: 2740, right: 3818)
+&gt; 
+&gt; 	Coefficient:
+&gt;    Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; D 0.1182314  0.0056799  20.816 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+
+.pull-right[
+改为4阶多项式回归
+
+```r
+house_reg2 &lt;- rdd_reg_lm(rdd_dat, order = 4)
+house_reg2
+&gt; ### RDD regression: parametric ###
+&gt; 	Polynomial order:  4 
+&gt; 	Slopes:  separate 
+&gt; 	Number of obs: 6558 (left: 2740, right: 3818)
+&gt; 
+&gt; 	Coefficient:
+&gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; D 0.076590   0.013239  5.7851 7.582e-09 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+
+---
+# McCracy 密度测试
+
+
+```r
+dens_test(rdd_dat)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-15-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+```
+&gt; 
+&gt; 	McCrary Test for no discontinuity of density around cutpoint
+&gt; 
+&gt; data:  rdd_dat
+&gt; z-val = 1.2952, p-value = 0.1952
+&gt; alternative hypothesis: Density is discontinuous around cutpoint
+&gt; sample estimates:
+&gt; Discontinuity 
+&gt;     0.1035008
+```
+---
+# 带宽选择
+
+1. `rdd_bw_ik()`: MSE-RDD bandwidth procedure of Imbens and Kalyanaraman (2012)
+2. `rdd_bw-rsw()`: MSE global bandwidth procedure of Ruppert et al 1995
+
+
+```r
+rdd_bw_ik(rdd_dat)
+&gt;     h_opt 
+&gt; 0.2938561
+rdd_bw_rsw(rdd_dat)
+&gt; [1] 0.03863514
+```
+---
+# 局部非参数估计
+
+```r
+reg_nonpara &lt;- rdd_reg_np(rdd_dat)
+print(reg_nonpara)
+&gt; ### RDD regression: nonparametric local linear###
+&gt; 	Bandwidth:  0.2938561 
+&gt; 	Number of obs: 3200 (left: 1594, right: 1606)
+&gt; 
+&gt; 	Coefficient:
+&gt;   Estimate Std. Error z value  Pr(&gt;|z|)    
+&gt; D 0.079924   0.009465  8.4443 &lt; 2.2e-16 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# 敏感性测试
+.pull-left[
+绘制不同带宽选择下的LATE估计值
+
+```r
+bw_ik &lt;- rdd_bw_ik(rdd_dat)
+reg_nonpara &lt;- rdd_reg_np(rdd_dat, bw=bw_ik)
+plotSensi(reg_nonpara, device='base')
+```
+]
+.pull-right[
+绘制不同带宽选择下的LATE估计值
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-19-1.png" width="504" /&gt;
+]
+---
+# 不同多项式阶数选择下的敏感度
+
+
+```r
+reg_para_ik &lt;- rdd_reg_lm(rdd_object=rdd_dat, order=4, bw=bw_ik)
+plotSensi(reg_para_ik)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-20-1.png" width="648" style="display: block; margin: auto;" /&gt;
+---
+# 安慰剂测试 (placebo test plot)
+
+```r
+plotPlacebo(reg_nonpara)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-21-1.png" width="648" style="display: block; margin: auto;" /&gt;
+
+---
+# 回归断点设计的R包
+
+- `rddtools`设计的较为简洁，可以实现一些基本的估计、带宽选择、敏感性测试、安慰剂检验等操作。但是目前的文档还不是很完善。
+官方网页为：http://qua.st/rddtools/docs/quick-start-guide/
+
+- `rdrobust`: 提供了sharp, fuzzy 和 Kink RDD的估计和作图函数。
+
+- 其中的`rdbwselect()`函数提供了不同的带宽最优选择方法
+
+- `rdplot()`提供了方便的RD作图函数。
+
+---
+# `rdrobust`包介绍：作图
+
+.pull-left[
+
+```r
+x&lt;-runif(1000,-1,1)
+y&lt;-5+3*x+2*(x&gt;=0)+rnorm(1000)
+plot(x, y)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
+]
+
+.pull-right[
+
+```r
+library(rdrobust)
+rdplot(y,x)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-23-1.png" width="504" /&gt;
+]
+
+---
+# `rdbosut()`估计
+
+```r
+rdrobust(y,x)
+&gt; Call: rdrobust
+&gt; 
+&gt; Number of Obs.                 1000
+&gt; BW type                       mserd
+&gt; Kernel                   Triangular
+&gt; VCE method                       NN
+&gt; 
+&gt; Number of Obs.                 506         494
+&gt; Eff. Number of Obs.            198         195
+&gt; Order est. (p)                   1           1
+&gt; Order bias  (q)                  2           2
+&gt; BW est. (h)                  0.400       0.400
+&gt; BW bias (b)                  0.605       0.605
+&gt; rho (h/b)                    0.660       0.660
+&gt; Unique Obs.                    506         494
+```
+---
+# `rdbwselect()`：RD带宽选择
+
+```r
+rdbwselect(y,x)
+&gt; Call: rdbwselect
+&gt; 
+&gt; Number of Obs.                 1000
+&gt; BW type                       mserd
+&gt; Kernel                   Triangular
+&gt; VCE method                       NN
+&gt; 
+&gt; Number of Obs.                 506         494
+&gt; Order est. (p)                   1           1
+&gt; Order bias  (q)                  2           2
+&gt; Unique Obs.                    506         494
+```
+
+### 练习：
+
+```r
+data(rdrobust_RDsenate)
+```
+
+
+---
+# `rdlocrand`包介绍：数据准备
+
+```r
+library(rdlocrand)
+data &lt;- read.csv("data/rdlocrand_senate.csv")
+X  &lt;-  cbind(data$presdemvoteshlag1,
+            data$population/1000000,
+            data$demvoteshlag1,
+            data$demvoteshlag2,
+            data$demwinprv1,
+            data$demwinprv2,
+            data$dopen,
+            data$dmidterm,
+            data$dpresdem)
+colnames(X) &lt;-  c("DemPres Vote",
+                 "Population",
+                 "DemSen Vote t-1",
+                 "DemSen Vote t-2",
+                 "DemSen Win t-1",
+                 "DemSen Win t-2",
+                 "Open", "Midterm",
+                 "DemPres")
+R &lt;- data$demmv
+Y &lt;- data$demvoteshfor2
+D &lt;- as.numeric(R&gt;=0)
+```
+
+---
+# `rdwinselect()`
+
+```r
+# Window selection with default options
+
+tmp1 &lt;- rdwinselect(R,X)
+&gt; Mass points detected in running variable
+&gt; 
+&gt; 
+&gt; Window selection for RD under local randomization 
+&gt; 
+&gt; Number of obs     =          1390
+&gt; Order of poly     =             0
+&gt; Kernel type       =       uniform
+&gt; Reps              =          1000
+&gt; Testing method    =     rdrandinf
+&gt; Balance test      =     diffmeans
+&gt; 
+&gt; Cutoff c =    0.000   Left of c  Right of c
+&gt;       Number of obs         640         750
+&gt;      1st percentile           7           7
+&gt;      5th percentile          32          37
+&gt;     10th percentile          64          75
+&gt;     20th percentile         127         149
+&gt; 
+&gt; ================================================================================
+&gt;   Window length / 2   p-value        Var. name    Bin.test      Obs&lt;c     Obs&gt;=c
+&gt; ================================================================================
+&gt;               0.529      0.206 DemSen.Vote.t.2       0.327         10         16
+&gt;               0.731      0.339  DemSen.Win.t.1       0.256         15         23
+&gt;               1.080      0.034            Open       0.119         19         31
+&gt;               1.307      0.107            Open       0.245         25         35
+&gt;               1.539      0.106         Midterm       0.728         35         39
+&gt;               1.676      0.074         Midterm       0.581         38         44
+&gt;               1.904      0.040         Midterm       0.602         43         49
+&gt;               2.185      0.071         Midterm       0.621         48         54
+&gt;               2.366      0.136            Open       0.637         53         59
+&gt;               2.644      0.164            Open       0.929         62         64
+&gt; ================================================================================
+&gt; Recommended window is [-0.731;0.731] with 38 observations (15 below, 23 above).
+
+# Window selection with specified window length and increments (replicate CFT)
+
+tmp2 &lt;- rdwinselect(R,X,wmin=.5,wstep=.125,reps=10000)
+&gt; Mass points detected in running variable
+&gt; 
+&gt; 
+&gt; Window selection for RD under local randomization 
+&gt; 
+&gt; Number of obs     =          1390
+&gt; Order of poly     =             0
+&gt; Kernel type       =       uniform
+&gt; Reps              =         10000
+&gt; Testing method    =     rdrandinf
+&gt; Balance test      =     diffmeans
+&gt; 
+&gt; Cutoff c =    0.000   Left of c  Right of c
+&gt;       Number of obs         640         750
+&gt;      1st percentile           7           7
+&gt;      5th percentile          32          37
+&gt;     10th percentile          64          75
+&gt;     20th percentile         127         149
+&gt; 
+&gt; ================================================================================
+&gt;   Window length / 2   p-value        Var. name    Bin.test      Obs&lt;c     Obs&gt;=c
+&gt; ================================================================================
+&gt;               0.500      0.265 DemSen.Vote.t.2       0.230          9         16
+&gt;               0.625      0.427            Open       0.377         13         19
+&gt;               0.750      0.257            Open       0.200         15         24
+&gt;               0.875      0.150            Open       0.211         16         25
+&gt;               1.000      0.074            Open       0.135         17         28
+&gt;               1.125      0.038            Open       0.119         19         31
+&gt;               1.250      0.059            Open       0.105         21         34
+&gt;               1.375      0.137         Midterm       0.539         30         36
+&gt;               1.500      0.090         Midterm       0.640         34         39
+&gt;               1.625      0.112         Midterm       0.734         37         41
+&gt; ================================================================================
+&gt; Recommended window is [-0.75;0.75] with 39 observations (15 below, 24 above).
+
+# Window selection using large sample approximation and plotting p-values
+
+tmp3 &lt;- rdwinselect(R,X,wmin=.5,wstep=.125,approx=TRUE,nwin=80,quietly=TRUE,plot=F)
+&gt; Mass points detected in running variable
+
+cbind(tmp1$window, tmp2$window, tmp3$window)
+&gt;            [,1]  [,2]  [,3]
+&gt; [1,] -0.7305294 -0.75 -0.75
+&gt; [2,]  0.7305294  0.75  0.75
+```
+
+---
+# Randomization inference
+
+```r
+# Randomization inference using recommended window
+
+tmp &lt;- rdrandinf(Y,R,wl=-.75,wr=.75)
+
+
+# Randomization inference using recommended window, all statistics
+
+tmp &lt;- rdrandinf(Y,R,wl=-.75,wr=.75,statistic='all')
+
+
+# Randomization inference using recommended window using rdwinselect
+
+tmp &lt;- rdrandinf(Y,R,statistic='all',covariates=X,wmin=.5,wstep=.125,rdwreps=10000)
+
+
+# Randomization inference using recommended window, linear adjustment
+
+tmp &lt;- rdrandinf(Y,R,wl=-.75,wr=.75,statistic='all',p=1)
+
+
+# Randomization inference under interference
+
+tmp &lt;- rdrandinf(Y,R,wl=-.75,wr=.75,interfci=.05)
+
+```
+
+---
+# RD sensitivity
+
+```r
+tmp &lt;- rdsensitivity(Y,R,wlist=seq(.75,1,by=.05),tlist=seq(0,20,by=1))
+xaxis &lt;- tmp$wlist
+yaxis &lt;- tmp$tlist
+zvalues &lt;- tmp$results
+filled.contour(xaxis,yaxis,t(zvalues),
+               xlab='window',ylab='treatment effect',
+               key.title=title(main = 'p-value',cex.main=.8),
+               levels=seq(0,1,by=.01),col=gray.colors(100,1,0))
+```
+
+---
+# Rosenbaum bounds `rdrbounds()`
+
+```r
+tmp &lt;- rdrbounds(Y,R,expgamma=c(1.5,2,3),wlist=c(.5,.75,1),reps=1000)
+tmp$lower.bound
+tmp$upper.bound
+
+# Bernoulli and fixed margins p-values
+
+tmp &lt;- rdrbounds(Y,R,expgamma=c(1.5,2,3),wlist=c(.5,.75,1),reps=1000,fmpval=TRUE)
+tmp$lower.bound
+tmp$upper.bound
+
+```
+
+---
+# Manipulation test, Density discontinuity test
+.pull-left[
+
+```r
+# Continuous Density
+library(rddensity)
+x &lt;- rnorm(2000, mean = -0.5)
+summary(rddensity(X = x, vce="jackknife"))
+&gt; 
+&gt; RD Manipulation Test using local polynomial density estimation.
+&gt; 
+&gt; Number of obs =       2000
+&gt; Model =               unrestricted
+&gt; Kernel =              triangular
+&gt; BW method =           comb
+&gt; VCE method =          jackknife
+&gt; 
+&gt; Cutoff c = 0          Left of c           Right of c          
+&gt; Number of obs         1371                629                 
+&gt; Eff. Number of obs    548                 495                 
+&gt; Order est. (p)        2                   2                   
+&gt; Order bias (q)        3                   3                   
+&gt; BW est. (h)           0.719               0.988               
+&gt; 
+&gt; Method                T                   P &gt; |T|             
+&gt; Robust                1.5339              0.1251
+```
+
+]
+.pull-right[
+
+```r
+# Discontinuous density
+x[x&gt;0] &lt;- x[x&gt;0] * 2
+summary(rddensity(X = x, vce="jackknife"))
+&gt; 
+&gt; RD Manipulation Test using local polynomial density estimation.
+&gt; 
+&gt; Number of obs =       2000
+&gt; Model =               unrestricted
+&gt; Kernel =              triangular
+&gt; BW method =           comb
+&gt; VCE method =          jackknife
+&gt; 
+&gt; Cutoff c = 0          Left of c           Right of c          
+&gt; Number of obs         1371                629                 
+&gt; Eff. Number of obs    558                 288                 
+&gt; Order est. (p)        2                   2                   
+&gt; Order bias (q)        3                   3                   
+&gt; BW est. (h)           0.734               0.894               
+&gt; 
+&gt; Method                T                   P &gt; |T|             
+&gt; Robust                -1.9519             0.051
+```
+
+]
+
+---
+# RD density plot
+
+```r
+x = rnorm(2000, mean = -0.5)
+x[x&gt;0] &lt;- x[x&gt;0] * 2
+rdd &lt;- rddensity(X = x)
+plot &lt;- rdplotdensity(rdd, x, plotRange = c(-2, 2), plotN = 25)
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-34-1.png" width="504" /&gt;
+
+---
+# `rddensity` 练习
+
+```r
+data("rddensity_senate")
+summary(margin)
+summary(rddensity(X = margin))
+summary(rddensity(X = margin, all=TRUE))
+summary(rddensity(X = margin, fitselect="restricted", vce="plugin"))
+rdd &lt;- rddensity(X = margin)
+rdplotdensity(rdd, margin)
+rdplotdensity(rdd, margin, lcol = c("black", "black"), xlabel = "margin",plotRange = c(-50, 50), plotN = 100)
+summary(rdbwdensity(X = margin))
+tmp &lt;- rdbwdensity(X = margin)
+hr &lt;- tmp$h[2,1]
+summary(rddensity(X = margin, h=c(10,hr)))
+summary(rddensity(X = margin, kernel = "uniform"))
+summary(rddensity(X = margin, bwselect = "diff"))
+summary(rddensity(X = margin, h = c(10,15)))
+summary(rddensity(X = margin, p = 2, q = 4))
+summary(rddensity(X = margin, c = 5, all = TRUE))
+summary(rdbwdensity(X = margin, p = 3, fitselect = "restricted"))
+summary(rdbwdensity(X = margin, kernel = "uniform", vce = "jackknife"))
+```
+
+---
+# `rdmulti`: 多重断点和得分
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

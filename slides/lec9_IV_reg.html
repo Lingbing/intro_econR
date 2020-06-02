@@ -76,21 +76,21 @@ $$Y_i = \beta_0 + \beta_1 \widehat{X_i} + \mu_i $$
 ```r
 data("CigarettesSW")
 summary(CigarettesSW)
-&gt;      state      year         cpi          population           packs       
-&gt;  AL     : 2   1985:48   Min.   :1.076   Min.   :  478447   Min.   : 49.27  
-&gt;  AR     : 2   1995:48   1st Qu.:1.076   1st Qu.: 1622606   1st Qu.: 92.45  
-&gt;  AZ     : 2             Median :1.300   Median : 3697472   Median :110.16  
-&gt;  CA     : 2             Mean   :1.300   Mean   : 5168866   Mean   :109.18  
-&gt;  CO     : 2             3rd Qu.:1.524   3rd Qu.: 5901500   3rd Qu.:123.52  
-&gt;  CT     : 2             Max.   :1.524   Max.   :31493524   Max.   :197.99  
-&gt;  (Other):84                                                                
-&gt;      income               tax            price             taxs       
-&gt;  Min.   :  6887097   Min.   :18.00   Min.   : 84.97   Min.   : 21.27  
-&gt;  1st Qu.: 25520384   1st Qu.:31.00   1st Qu.:102.71   1st Qu.: 34.77  
-&gt;  Median : 61661644   Median :37.00   Median :137.72   Median : 41.05  
-&gt;  Mean   : 99878736   Mean   :42.68   Mean   :143.45   Mean   : 48.33  
-&gt;  3rd Qu.:127313964   3rd Qu.:50.88   3rd Qu.:176.15   3rd Qu.: 59.48  
-&gt;  Max.   :771470144   Max.   :99.00   Max.   :240.85   Max.   :112.63  
+&gt;      state      year         cpi          population           packs            income         
+&gt;  AL     : 2   1985:48   Min.   :1.076   Min.   :  478447   Min.   : 49.27   Min.   :  6887097  
+&gt;  AR     : 2   1995:48   1st Qu.:1.076   1st Qu.: 1622606   1st Qu.: 92.45   1st Qu.: 25520384  
+&gt;  AZ     : 2             Median :1.300   Median : 3697472   Median :110.16   Median : 61661644  
+&gt;  CA     : 2             Mean   :1.300   Mean   : 5168866   Mean   :109.18   Mean   : 99878736  
+&gt;  CO     : 2             3rd Qu.:1.524   3rd Qu.: 5901500   3rd Qu.:123.52   3rd Qu.:127313964  
+&gt;  CT     : 2             Max.   :1.524   Max.   :31493524   Max.   :197.99   Max.   :771470144  
+&gt;  (Other):84                                                                                    
+&gt;       tax            price             taxs       
+&gt;  Min.   :18.00   Min.   : 84.97   Min.   : 21.27  
+&gt;  1st Qu.:31.00   1st Qu.:102.71   1st Qu.: 34.77  
+&gt;  Median :37.00   Median :137.72   Median : 41.05  
+&gt;  Mean   :42.68   Mean   :143.45   Mean   : 48.33  
+&gt;  3rd Qu.:50.88   3rd Qu.:176.15   3rd Qu.: 59.48  
+&gt;  Max.   :99.00   Max.   :240.85   Max.   :112.63  
 &gt; 
 ```
 

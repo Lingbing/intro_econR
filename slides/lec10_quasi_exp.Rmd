@@ -140,7 +140,7 @@ fm3 <- lm(I(read3 + math3) ~ star3, data = STAR)
 
 ---
 ```{r echo=F}
-tab_model(fmk, fm1, fm2, fm3, emph.p = T, robust = T, show.ci = F, collapse.se = T,string.pred = "Coeffcient", show.se = F, dv.labels = c("K", "1", "2", "3"), p.style = "a")
+tab_model(fmk, fm1, fm2, fm3, emph.p = T, robust = T, show.ci = F, collapse.se = T,string.pred = "Coeffcient", show.se = F, dv.labels = c("K", "1", "2", "3"), p.style = "stars")
 ```
 
 ---
@@ -150,7 +150,7 @@ tab_model(fmk, fm1, fm2, fm3, emph.p = T, robust = T, show.ci = F, collapse.se =
 - boy: 学生的性别
 - lunch: 是否可以领取免费午餐
 - black: 学生为黑人
-- race: 学生的u种族
+- race: 学生的种族
 - schoolid: 学校识别代码
 
 ```{r}
@@ -695,13 +695,39 @@ pre.test <- conditional_did_pretest(yname="lemp",
                                     data=mpdta)
 summary(pre.test)
 ```
+---
+# DID 的一些新进展
+
+- 如果事前平行趋势假设不成立，是否可以继续做DID？
+
+Rambachan and Roth (2019) 假设事前差距是存在的，并且允许其在一个范围内（M）变化。
+
+- 开发了`HonestDiD`包
+
+- `bacon`包：
 
 
+---
+# Bacon 分解
+```{r}
+library(bacondecomp)
+data("castle")
+head(castle)
+```
 
 
-
-
-
+---
+# Bacon
+```{r}
+df_bacon <- bacon(l_homicide ~ post,
+                  data = bacondecomp::castle,
+                  id_var = "state",
+                  time_var = "year")
+coef_bacon <- sum(df_bacon$estimate * df_bacon$weight)
+print(paste("Weighted sum of decomposition =", round(coef_bacon, 4)))
+fit_tw <- lm(l_homicide ~ post + factor(state) + factor(year), data = bacondecomp::castle)
+print(paste("Two-way FE estimate =", round(fit_tw$coefficients[2], 4)))
+```
 
 
 

@@ -1,0 +1,113 @@
+---
+title: "IV Example"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+来源: https://bookdown.org/ccolonescu/RPoE4/random-regressors.html
+
+```{r message=F}
+library(AER) #for `ivreg()`
+library(lmtest) #for `coeftest()` and `bptest()`.
+library(broom) #for `glance(`) and `tidy()`
+library(PoEdata) #for PoE4 datasets
+library(car) #for `hccm()` robust standard errors
+library(sandwich)
+library(knitr) #for making neat tables with `kable()`
+library(stargazer) 
+library(sjPlot)
+library(sjmisc)
+library(plm)
+library(sjlabelled)
+```
+
+# 模型
+
+$$\begin{equation}
+log(wage)=\beta_{1}+\beta_{2}educ+\beta_{3}exper+\beta_{4}exper^2+e
+\label{eq:wagelm10}
+\end{equation}$$
+
+# 数据与第一阶段回归
+
+$$\begin{equation}
+educ=\gamma_{1}+\gamma_{2}exper+\gamma_{3}exper^2+\theta_{1}mothereduc+\nu_{educ}
+\label{eq:firstStageEduc10}
+\end{equation}$$
+
+```{r}
+data("mroz", package="PoEdata")
+mroz1 <- mroz[mroz$lfp==1,] #restricts sample to lfp=1
+educ.ols <- lm(educ~exper+I(exper^2)+mothereduc, data=mroz1)
+kable(tidy(educ.ols), digits=4, align='c',caption=
+  "First stage in the 2SLS model for the 'wage' equation")
+```
+
+# 第二阶段回归
+
+```{r}
+educHat <- fitted(educ.ols)
+wage.2sls <- lm(log(wage)~educHat+exper+I(exper^2), data=mroz1)
+kable(tidy(wage.2sls), digits=4, align='c',caption=
+  "Second stage in the 2SLS model for the 'wage' equation")
+```
+
+
+# 修正标准误估计
+```{r results='asis'}
+data("mroz", package="PoEdata")
+mroz1 <- mroz[mroz$lfp==1,] #restricts sample to lfp=1.
+mroz1.ols <- lm(log(wage)~educ+exper+I(exper^2), data=mroz1)
+mroz1.iv <- ivreg(log(wage)~educ+exper+I(exper^2)|
+            exper+I(exper^2)+mothereduc, data=mroz1)
+mroz1.iv1 <- ivreg(log(wage)~educ+exper+I(exper^2)|
+            exper+I(exper^2)+mothereduc+fathereduc,
+            data=mroz1)
+tab_model(mroz1.ols, wage.2sls, mroz1.iv, mroz1.iv1,
+		  emph.p = T, robust = T,
+          show.ci = F, collapse.se = T, string.pred = "Coeffcient", show.se = F, 
+		  dv.labels = c("OLS", "explicit 2SLS", "IV1", "IV2"),
+          p.style = "a")
+```
+
+
+# 弱工具变量检验
+
+$$\begin{equation}
+educ=\gamma_{1}+\gamma_{2}exper+\gamma_{3} exper^2+\theta_{1} mothereduc+ \theta_{2}fathereduc+\nu
+\label{eq:educlm10}
+\end{equation}$$
+
+
+```{r}
+educ.ols <- lm(educ~exper+I(exper^2)+mothereduc+fathereduc, 
+               data=mroz1)
+tab <- tidy(educ.ols)
+kable(tab, digits=4,
+      caption="The 'educ' first-stage equation")
+```
+
+```{r}
+linearHypothesis(educ.ols, c("mothereduc=0", "fathereduc=0"))
+```
+
+# specification tests
+
+1. 内生性检验 (Hausman test for endogeneity)：$H_{0}:\;Cov(x,e)=0$
+
+2. 过度识别检验：(overidentifying restrictions, or the Sargan test): $H_{0}:Cov(z,e)=0$
+
+```{r}
+summary(mroz1.iv1, diagnostics=TRUE)
+```
+
+检验的主要结论：
+
+- Weak instruments test: rejects the null, meaning that at least one instrument is strong
+
+- (Wu-)Hausman test for endogeneity: barely rejects the null that the variable of concern is uncorrelated with the error term, indicating that  educ  is marginally endogenous
+
+- Sargan overidentifying restrictions: does not reject the null, meaning that the extra instruments are valid (are uncorrelated with the error term).

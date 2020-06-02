@@ -1,0 +1,443 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={IV Example},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{IV Example}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+来源: \url{https://bookdown.org/ccolonescu/RPoE4/random-regressors.html}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(AER) }\CommentTok{#for `ivreg()`}
+\KeywordTok{library}\NormalTok{(lmtest) }\CommentTok{#for `coeftest()` and `bptest()`.}
+\KeywordTok{library}\NormalTok{(broom) }\CommentTok{#for `glance(`) and `tidy()`}
+\KeywordTok{library}\NormalTok{(PoEdata) }\CommentTok{#for PoE4 datasets}
+\KeywordTok{library}\NormalTok{(car) }\CommentTok{#for `hccm()` robust standard errors}
+\KeywordTok{library}\NormalTok{(sandwich)}
+\KeywordTok{library}\NormalTok{(knitr) }\CommentTok{#for making neat tables with `kable()`}
+\KeywordTok{library}\NormalTok{(stargazer) }
+\KeywordTok{library}\NormalTok{(sjPlot)}
+\KeywordTok{library}\NormalTok{(sjmisc)}
+\KeywordTok{library}\NormalTok{(plm)}
+\KeywordTok{library}\NormalTok{(sjlabelled)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{ux6a21ux578b}{%
+\section{模型}\label{ux6a21ux578b}}
+
+\[\begin{equation}
+log(wage)=\beta_{1}+\beta_{2}educ+\beta_{3}exper+\beta_{4}exper^2+e
+\label{eq:wagelm10}
+\end{equation}\]
+
+\hypertarget{ux6570ux636eux4e0eux7b2cux4e00ux9636ux6bb5ux56deux5f52}{%
+\section{数据与第一阶段回归}\label{ux6570ux636eux4e0eux7b2cux4e00ux9636ux6bb5ux56deux5f52}}
+
+\[\begin{equation}
+educ=\gamma_{1}+\gamma_{2}exper+\gamma_{3}exper^2+\theta_{1}mothereduc+\nu_{educ}
+\label{eq:firstStageEduc10}
+\end{equation}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{data}\NormalTok{(}\StringTok{"mroz"}\NormalTok{, }\DataTypeTok{package=}\StringTok{"PoEdata"}\NormalTok{)}
+\NormalTok{mroz1 <-}\StringTok{ }\NormalTok{mroz[mroz}\OperatorTok{$}\NormalTok{lfp}\OperatorTok{==}\DecValTok{1}\NormalTok{,] }\CommentTok{#restricts sample to lfp=1}
+\NormalTok{educ.ols <-}\StringTok{ }\KeywordTok{lm}\NormalTok{(educ}\OperatorTok{~}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{+}\NormalTok{mothereduc, }\DataTypeTok{data=}\NormalTok{mroz1)}
+\KeywordTok{kable}\NormalTok{(}\KeywordTok{tidy}\NormalTok{(educ.ols), }\DataTypeTok{digits=}\DecValTok{4}\NormalTok{, }\DataTypeTok{align=}\StringTok{'c'}\NormalTok{,}\DataTypeTok{caption=}
+  \StringTok{"First stage in the 2SLS model for the 'wage' equation"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}ccccc@{}}
+\caption{First stage in the 2SLS model for the `wage'
+equation}\tabularnewline
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endhead
+(Intercept) & 9.7751 & 0.4239 & 23.0605 & 0.0000\tabularnewline
+exper & 0.0489 & 0.0417 & 1.1726 & 0.2416\tabularnewline
+I(exper\^{}2) & -0.0013 & 0.0012 & -1.0290 & 0.3040\tabularnewline
+mothereduc & 0.2677 & 0.0311 & 8.5992 & 0.0000\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{ux7b2cux4e8cux9636ux6bb5ux56deux5f52}{%
+\section{第二阶段回归}\label{ux7b2cux4e8cux9636ux6bb5ux56deux5f52}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{educHat <-}\StringTok{ }\KeywordTok{fitted}\NormalTok{(educ.ols)}
+\NormalTok{wage}\FloatTok{.2}\NormalTok{sls <-}\StringTok{ }\KeywordTok{lm}\NormalTok{(}\KeywordTok{log}\NormalTok{(wage)}\OperatorTok{~}\NormalTok{educHat}\OperatorTok{+}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{), }\DataTypeTok{data=}\NormalTok{mroz1)}
+\KeywordTok{kable}\NormalTok{(}\KeywordTok{tidy}\NormalTok{(wage}\FloatTok{.2}\NormalTok{sls), }\DataTypeTok{digits=}\DecValTok{4}\NormalTok{, }\DataTypeTok{align=}\StringTok{'c'}\NormalTok{,}\DataTypeTok{caption=}
+  \StringTok{"Second stage in the 2SLS model for the 'wage' equation"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}ccccc@{}}
+\caption{Second stage in the 2SLS model for the `wage'
+equation}\tabularnewline
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endhead
+(Intercept) & 0.1982 & 0.4933 & 0.4017 & 0.6881\tabularnewline
+educHat & 0.0493 & 0.0391 & 1.2613 & 0.2079\tabularnewline
+exper & 0.0449 & 0.0142 & 3.1668 & 0.0017\tabularnewline
+I(exper\^{}2) & -0.0009 & 0.0004 & -2.1749 & 0.0302\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{ux4feeux6b63ux6807ux51c6ux8befux4f30ux8ba1}{%
+\section{修正标准误估计}\label{ux4feeux6b63ux6807ux51c6ux8befux4f30ux8ba1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{data}\NormalTok{(}\StringTok{"mroz"}\NormalTok{, }\DataTypeTok{package=}\StringTok{"PoEdata"}\NormalTok{)}
+\NormalTok{mroz1 <-}\StringTok{ }\NormalTok{mroz[mroz}\OperatorTok{$}\NormalTok{lfp}\OperatorTok{==}\DecValTok{1}\NormalTok{,] }\CommentTok{#restricts sample to lfp=1.}
+\NormalTok{mroz1.ols <-}\StringTok{ }\KeywordTok{lm}\NormalTok{(}\KeywordTok{log}\NormalTok{(wage)}\OperatorTok{~}\NormalTok{educ}\OperatorTok{+}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{), }\DataTypeTok{data=}\NormalTok{mroz1)}
+\NormalTok{mroz1.iv <-}\StringTok{ }\KeywordTok{ivreg}\NormalTok{(}\KeywordTok{log}\NormalTok{(wage)}\OperatorTok{~}\NormalTok{educ}\OperatorTok{+}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{|}
+\StringTok{            }\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{+}\NormalTok{mothereduc, }\DataTypeTok{data=}\NormalTok{mroz1)}
+\NormalTok{mroz1.iv1 <-}\StringTok{ }\KeywordTok{ivreg}\NormalTok{(}\KeywordTok{log}\NormalTok{(wage)}\OperatorTok{~}\NormalTok{educ}\OperatorTok{+}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{|}
+\StringTok{            }\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{+}\NormalTok{mothereduc}\OperatorTok{+}\NormalTok{fathereduc,}
+            \DataTypeTok{data=}\NormalTok{mroz1)}
+\KeywordTok{tab_model}\NormalTok{(mroz1.ols, wage}\FloatTok{.2}\NormalTok{sls, mroz1.iv, mroz1.iv1,}
+          \DataTypeTok{emph.p =}\NormalTok{ T, }\DataTypeTok{robust =}\NormalTok{ T,}
+          \DataTypeTok{show.ci =}\NormalTok{ F, }\DataTypeTok{collapse.se =}\NormalTok{ T, }\DataTypeTok{string.pred =} \StringTok{"Coeffcient"}\NormalTok{, }\DataTypeTok{show.se =}\NormalTok{ F, }
+          \DataTypeTok{dv.labels =} \KeywordTok{c}\NormalTok{(}\StringTok{"OLS"}\NormalTok{, }\StringTok{"explicit 2SLS"}\NormalTok{, }\StringTok{"IV1"}\NormalTok{, }\StringTok{"IV2"}\NormalTok{),}
+          \DataTypeTok{p.style =} \StringTok{"a"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+~
+
+OLS
+
+explicit 2SLS
+
+IV1
+
+IV2
+
+Coeffcient
+
+Estimates
+
+Estimates
+
+Estimates
+
+Estimates
+
+(Intercept)
+
+-0.52 *(0.20)
+
+0.20 (0.51)
+
+0.20 (0.49)
+
+0.05 (0.43)
+
+educ
+
+0.11 ***(0.01)
+
+0.05 (0.04)
+
+0.06 (0.03)
+
+exper
+
+0.04 **(0.02)
+
+0.04 **(0.02)
+
+0.04 **(0.02)
+
+0.04 **(0.02)
+
+exper\^{}2
+
+-0.00 (0.00)
+
+-0.00 *(0.00)
+
+-0.00 *(0.00)
+
+-0.00 *(0.00)
+
+educHat
+
+0.05 (0.04)
+
+Observations
+
+428
+
+428
+
+428
+
+428
+
+R2 / R2 adjusted
+
+0.157 / 0.151
+
+0.046 / 0.039
+
+0.123 / 0.117
+
+0.136 / 0.130
+
+\begin{itemize}
+\tightlist
+\item
+  p\textless0.05~~~** p\textless0.01~~~*** p\textless0.001
+\end{itemize}
+
+\hypertarget{ux5f31ux5de5ux5177ux53d8ux91cfux68c0ux9a8c}{%
+\section{弱工具变量检验}\label{ux5f31ux5de5ux5177ux53d8ux91cfux68c0ux9a8c}}
+
+\[\begin{equation}
+educ=\gamma_{1}+\gamma_{2}exper+\gamma_{3} exper^2+\theta_{1} mothereduc+ \theta_{2}fathereduc+\nu
+\label{eq:educlm10}
+\end{equation}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{educ.ols <-}\StringTok{ }\KeywordTok{lm}\NormalTok{(educ}\OperatorTok{~}\NormalTok{exper}\OperatorTok{+}\KeywordTok{I}\NormalTok{(exper}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{+}\NormalTok{mothereduc}\OperatorTok{+}\NormalTok{fathereduc, }
+               \DataTypeTok{data=}\NormalTok{mroz1)}
+\NormalTok{tab <-}\StringTok{ }\KeywordTok{tidy}\NormalTok{(educ.ols)}
+\KeywordTok{kable}\NormalTok{(tab, }\DataTypeTok{digits=}\DecValTok{4}\NormalTok{,}
+      \DataTypeTok{caption=}\StringTok{"The 'educ' first-stage equation"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\caption{The `educ' first-stage equation}\tabularnewline
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+term & estimate & std.error & statistic & p.value\tabularnewline
+\midrule
+\endhead
+(Intercept) & 9.1026 & 0.4266 & 21.3396 & 0.0000\tabularnewline
+exper & 0.0452 & 0.0403 & 1.1236 & 0.2618\tabularnewline
+I(exper\^{}2) & -0.0010 & 0.0012 & -0.8386 & 0.4022\tabularnewline
+mothereduc & 0.1576 & 0.0359 & 4.3906 & 0.0000\tabularnewline
+fathereduc & 0.1895 & 0.0338 & 5.6152 & 0.0000\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{linearHypothesis}\NormalTok{(educ.ols, }\KeywordTok{c}\NormalTok{(}\StringTok{"mothereduc=0"}\NormalTok{, }\StringTok{"fathereduc=0"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Linear hypothesis test
+## 
+## Hypothesis:
+## mothereduc = 0
+## fathereduc = 0
+## 
+## Model 1: restricted model
+## Model 2: educ ~ exper + I(exper^2) + mothereduc + fathereduc
+## 
+##   Res.Df    RSS Df Sum of Sq    F    Pr(>F)    
+## 1    425 2219.2                                
+## 2    423 1758.6  2    460.64 55.4 < 2.2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\hypertarget{specification-tests}{%
+\section{specification tests}\label{specification-tests}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  内生性检验 (Hausman test for endogeneity)：\(H_{0}:\;Cov(x,e)=0\)
+\item
+  过度识别检验：(overidentifying restrictions, or the Sargan test):
+  \(H_{0}:Cov(z,e)=0\)
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{summary}\NormalTok{(mroz1.iv1, }\DataTypeTok{diagnostics=}\OtherTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## ivreg(formula = log(wage) ~ educ + exper + I(exper^2) | exper + 
+##     I(exper^2) + mothereduc + fathereduc, data = mroz1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -3.0986 -0.3196  0.0551  0.3689  2.3493 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)  0.0481003  0.4003281   0.120  0.90442   
+## educ         0.0613966  0.0314367   1.953  0.05147 . 
+## exper        0.0441704  0.0134325   3.288  0.00109 **
+## I(exper^2)  -0.0008990  0.0004017  -2.238  0.02574 * 
+## 
+## Diagnostic tests:
+##                  df1 df2 statistic p-value    
+## Weak instruments   2 423    55.400  <2e-16 ***
+## Wu-Hausman         1 423     2.793  0.0954 .  
+## Sargan             1  NA     0.378  0.5386    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.6747 on 424 degrees of freedom
+## Multiple R-Squared: 0.1357,  Adjusted R-squared: 0.1296 
+## Wald test: 8.141 on 3 and 424 DF,  p-value: 2.787e-05
+\end{verbatim}
+
+检验的主要结论：
+
+\begin{itemize}
+\item
+  Weak instruments test: rejects the null, meaning that at least one
+  instrument is strong
+\item
+  (Wu-)Hausman test for endogeneity: barely rejects the null that the
+  variable of concern is uncorrelated with the error term, indicating
+  that educ is marginally endogenous
+\item
+  Sargan overidentifying restrictions: does not reject the null, meaning
+  that the extra instruments are valid (are uncorrelated with the error
+  term).
+\end{itemize}
+
+\end{document}

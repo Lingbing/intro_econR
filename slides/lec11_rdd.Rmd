@@ -1,0 +1,510 @@
+---
+title: "回归断点设计"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(AER)
+library(stargazer)
+library(sjPlot)
+library(sjmisc)
+library(plm)
+library(sjlabelled)
+library(dplyr)
+library(tidyr)
+library(rddtools)
+```
+
+# RDD原理
+
+模型
+
+$$\begin{align}
+  Y_i =& \beta_0 + \beta_1 X_i + \beta_2 W_i + u_i \tag{13.12}
+\end{align}$$
+
+令
+
+$$\begin{align*}
+X_i =& 
+  \begin{cases}
+    1, & W_i \geq c \\
+    0, & W_i < c
+  \end{cases}
+\end{align*}$$
+
+处理与否取决于连续变量 $W_i$ 的取值是否超过阈值 $c$。变量W称为 running variable。
+
+回归断点设计的主要思路是利用 $W_i=c$ 附近的观测值具有相似的特性，但是由于阈值的存在而分别进入了处理组和控制组。因此 $\beta_1$ 是对于这一小部分观测值的因果效应的估计。
+
+此处的RDD也称为 sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
+
+---
+# RDD 假设
+
+RDD的关键假设是：
+
+- 断点左侧 (marginally below the threshold) 附近的个体必须是断点右侧接受干预个体的有效反事实样本 (valid counterfactual)。[Hahn et al. (2001); Lee (2008)]
+
+满足这个假设有两方面的挑战：
+
+1. 在很多场景下，个体对他们的得分能够施加影响
+
+2. 这本身是一个不可检验的假设 (untestable assumption)
+
+---
+# RDD 数据模拟
+.pull-left[
+- 在0处模拟一个sharp RDD场景
+
+- RDD效应值为2
+
+- 使用`rddtools`包方便画图
+
+```{r eval=F}
+W <- runif(1000, -1, 1)
+y <- 3 + 2 * W + 10 * (W>=0) + rnorm(1000)
+library(rddtools)
+rdddata <- rdd_data(y, W, cutpoint = 0)
+plot(rdddata,
+     col = "steelblue",
+     cex = 0.35, 
+     xlab = "W", 
+     ylab = "Y")
+```
+]
+
+
+.pull-right[
+```{r echo=F}
+W <- runif(1000, -1, 1)
+y <- 3 + 2 * W + 10 * (W>=0) + rnorm(1000)
+library(rddtools)
+rdddata <- rdd_data(y, W, cutpoint = 0)
+plot(rdddata,
+     col = "steelblue",
+     cex = 0.35, 
+     xlab = "W", 
+     ylab = "Y")
+```
+]
+
+---
+# RDD 拟合及展示
+
+.pull-left[
+```{r}
+rdd_mod <- rdd_reg_lm(rdd_object = rdddata, 
+                      slope = "same")
+summary(rdd_mod)
+```
+]
+.pull-right[
+```{r echo=F}
+plot(rdd_mod,
+     cex = 0.35, 
+     col = "steelblue", 
+     xlab = "W", 
+     ylab = "Y")
+```
+
+]
+
+---
+# Fuzzy RDD 及模拟
+
+
+
+.pull-left[
+如果超越阈值并不是接受干预的唯一原因，那么sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
+
+$$\begin{align*}
+  Z_i = \begin{cases}
+    1, & W_i \geq c \\
+    0, & W_i < c,
+  \end{cases}
+\end{align*}$$
+
+$Z_i$ 对 $Y_i$ 的影响只通过干预变量 $X_i$。因此 $Z_i$ 是 $X_i$ 的工具变量。
+```{r}
+library(MASS)
+mu <- c(0, 0)
+sigma <- matrix(c(1, 0.7, 0.7, 1), ncol = 2)
+set.seed(1234)
+d <- as.data.frame(mvrnorm(2000, mu, sigma))
+colnames(d) <- c("W", "Y")
+d$treatProb <- ifelse(d$W < 0, 0, 0.8)
+fuzz <- sapply(X = d$treatProb, FUN = function(x) rbinom(1, 1, prob = x))
+d$Y <- d$Y + fuzz * 2
+```
+]
+.pull-right[
+```{r echo=F}
+plot(d$W, d$Y,
+     col = c("steelblue", "darkred")[factor(fuzz)], 
+     pch= 20, 
+     cex = 0.5,
+     xlim = c(-3, 3),
+     ylim = c(-3.5, 5),
+     xlab = "W",
+     ylab = "Y")
+
+# add a dashed vertical line at cutoff
+abline(v = 0, lty = 2)
+```
+
+]
+
+---
+# Fuzzy Rdd 估计
+
+```{r}
+data <- rdd_data(d$Y, d$W, 
+                 cutpoint = 0, 
+                 z = d$treatProb)
+frdd_mod <- rdd_reg_lm(rdd_object = data, 
+                       slope = "same")
+frdd_mod
+```
+
+---
+# Fuzzy RDD 拟合图
+
+```{r echo=F, fig.align='center'}
+plot(frdd_mod, 
+     cex = 0.5, 
+     lwd = 0.4,
+     xlim = c(-4, 4),
+     ylim = c(-3.5, 5),
+     xlab = "W",
+     ylab = "Y")
+```
+
+---
+# Fuzzy 情形错用 SRDD
+
+此处，如果错用简单RDD估计Fuzzy RDD数据，将导致因果效应被低估：
+
+```{r}
+data <- rdd_data(d$Y, 
+                 d$W, 
+                 cutpoint = 0)
+srdd_mod <- rdd_reg_lm(rdd_object = data, 
+                       slope = "same")
+srdd_mod
+```
+
+---
+# Sharp RDD 实例 (Lee, 2008)
+```{r}
+data(house)
+head(house, 5)
+```
+设定rdd data:
+```{r}
+rdd_dat <- rdd_data(x=x, y=y, cutpoint=0, data=house)
+```
+
+rdd参数估计
+```{r}
+house_reg1 <- rdd_reg_lm(rdd_dat)
+```
+
+---
+# RDD 估计结果
+.pull-left[
+```{r}
+house_reg1
+```
+]
+
+.pull-right[
+改为4阶多项式回归
+```{r}
+house_reg2 <- rdd_reg_lm(rdd_dat, order = 4)
+house_reg2
+```
+]
+
+---
+# McCracy 密度测试
+
+```{r fig.align='center', fig.width=7}
+dens_test(rdd_dat)
+```
+---
+# 带宽选择
+
+1. `rdd_bw_ik()`: MSE-RDD bandwidth procedure of Imbens and Kalyanaraman (2012)
+2. `rdd_bw-rsw()`: MSE global bandwidth procedure of Ruppert et al 1995
+
+```{r}
+rdd_bw_ik(rdd_dat)
+rdd_bw_rsw(rdd_dat)
+```
+---
+# 局部非参数估计
+```{r}
+reg_nonpara <- rdd_reg_np(rdd_dat)
+print(reg_nonpara)
+```
+
+---
+# 敏感性测试
+.pull-left[
+绘制不同带宽选择下的LATE估计值
+```{r eval=F}
+bw_ik <- rdd_bw_ik(rdd_dat)
+reg_nonpara <- rdd_reg_np(rdd_dat, bw=bw_ik)
+plotSensi(reg_nonpara, device='base')
+```
+]
+.pull-right[
+绘制不同带宽选择下的LATE估计值
+```{r echo=F}
+bw_ik <- rdd_bw_ik(rdd_dat)
+reg_nonpara <- rdd_reg_np(rdd_dat, bw=bw_ik)
+plotSensi(reg_nonpara, device='base')
+```
+]
+---
+# 不同多项式阶数选择下的敏感度
+
+```{r fig.align='center', fig.height=7, fig.width=9}
+reg_para_ik <- rdd_reg_lm(rdd_object=rdd_dat, order=4, bw=bw_ik)
+plotSensi(reg_para_ik)
+```
+---
+# 安慰剂测试 (placebo test plot)
+```{r fig.align='center', fig.height=7, fig.width=9}
+plotPlacebo(reg_nonpara)
+```
+
+---
+# 回归断点设计的R包
+
+- `rddtools`设计的较为简洁，可以实现一些基本的估计、带宽选择、敏感性测试、安慰剂检验等操作。但是目前的文档还不是很完善。
+官方网页为：http://qua.st/rddtools/docs/quick-start-guide/
+
+- `rdrobust`: 提供了sharp, fuzzy 和 Kink RDD的估计和作图函数。
+
+- 其中的`rdbwselect()`函数提供了不同的带宽最优选择方法
+
+- `rdplot()`提供了方便的RD作图函数。
+
+---
+# `rdrobust`包介绍：作图
+
+.pull-left[
+```{r fig.height=5}
+x<-runif(1000,-1,1)
+y<-5+3*x+2*(x>=0)+rnorm(1000)
+plot(x, y)
+```
+]
+
+.pull-right[
+```{r fig.height=5}
+library(rdrobust)
+rdplot(y,x)
+```
+]
+
+---
+# `rdbosut()`估计
+```{r}
+rdrobust(y,x)
+```
+---
+# `rdbwselect()`：RD带宽选择
+```{r}
+rdbwselect(y,x)
+```
+
+### 练习：
+```{r}
+data(rdrobust_RDsenate)
+```
+
+
+---
+# `rdlocrand`包介绍：数据准备
+```{r}
+library(rdlocrand)
+data <- read.csv("data/rdlocrand_senate.csv")
+X  <-  cbind(data$presdemvoteshlag1,
+            data$population/1000000,
+            data$demvoteshlag1,
+            data$demvoteshlag2,
+            data$demwinprv1,
+            data$demwinprv2,
+            data$dopen,
+            data$dmidterm,
+            data$dpresdem)
+colnames(X) <-  c("DemPres Vote",
+                 "Population",
+                 "DemSen Vote t-1",
+                 "DemSen Vote t-2",
+                 "DemSen Win t-1",
+                 "DemSen Win t-2",
+                 "Open", "Midterm",
+                 "DemPres")
+R <- data$demmv
+Y <- data$demvoteshfor2
+D <- as.numeric(R>=0)
+```
+
+---
+# `rdwinselect()`
+```{r}
+# Window selection with default options
+
+tmp1 <- rdwinselect(R,X)
+
+# Window selection with specified window length and increments (replicate CFT)
+
+tmp2 <- rdwinselect(R,X,wmin=.5,wstep=.125,reps=10000)
+
+# Window selection using large sample approximation and plotting p-values
+
+tmp3 <- rdwinselect(R,X,wmin=.5,wstep=.125,approx=TRUE,nwin=80,quietly=TRUE,plot=F)
+
+cbind(tmp1$window, tmp2$window, tmp3$window)
+```
+
+---
+# Randomization inference
+```{r eval=F}
+# Randomization inference using recommended window
+
+tmp <- rdrandinf(Y,R,wl=-.75,wr=.75)
+
+
+# Randomization inference using recommended window, all statistics
+
+tmp <- rdrandinf(Y,R,wl=-.75,wr=.75,statistic='all')
+
+
+# Randomization inference using recommended window using rdwinselect
+
+tmp <- rdrandinf(Y,R,statistic='all',covariates=X,wmin=.5,wstep=.125,rdwreps=10000)
+
+
+# Randomization inference using recommended window, linear adjustment
+
+tmp <- rdrandinf(Y,R,wl=-.75,wr=.75,statistic='all',p=1)
+
+
+# Randomization inference under interference
+
+tmp <- rdrandinf(Y,R,wl=-.75,wr=.75,interfci=.05)
+
+```
+
+---
+# RD sensitivity
+```{r eval=F}
+tmp <- rdsensitivity(Y,R,wlist=seq(.75,1,by=.05),tlist=seq(0,20,by=1))
+xaxis <- tmp$wlist
+yaxis <- tmp$tlist
+zvalues <- tmp$results
+filled.contour(xaxis,yaxis,t(zvalues),
+               xlab='window',ylab='treatment effect',
+               key.title=title(main = 'p-value',cex.main=.8),
+               levels=seq(0,1,by=.01),col=gray.colors(100,1,0))
+```
+
+---
+# Rosenbaum bounds `rdrbounds()`
+```{r eval=F}
+tmp <- rdrbounds(Y,R,expgamma=c(1.5,2,3),wlist=c(.5,.75,1),reps=1000)
+tmp$lower.bound
+tmp$upper.bound
+
+# Bernoulli and fixed margins p-values
+
+tmp <- rdrbounds(Y,R,expgamma=c(1.5,2,3),wlist=c(.5,.75,1),reps=1000,fmpval=TRUE)
+tmp$lower.bound
+tmp$upper.bound
+
+```
+
+---
+# Manipulation test, Density discontinuity test
+.pull-left[
+```{r}
+# Continuous Density
+library(rddensity)
+x <- rnorm(2000, mean = -0.5)
+summary(rddensity(X = x, vce="jackknife"))
+```
+
+]
+.pull-right[
+```{r}
+# Discontinuous density
+x[x>0] <- x[x>0] * 2
+summary(rddensity(X = x, vce="jackknife"))
+```
+
+]
+
+---
+# RD density plot
+```{r}
+x = rnorm(2000, mean = -0.5)
+x[x>0] <- x[x>0] * 2
+rdd <- rddensity(X = x)
+plot <- rdplotdensity(rdd, x, plotRange = c(-2, 2), plotN = 25)
+```
+
+---
+# `rddensity` 练习
+```{r eval=F}
+data("rddensity_senate")
+summary(margin)
+summary(rddensity(X = margin))
+summary(rddensity(X = margin, all=TRUE))
+summary(rddensity(X = margin, fitselect="restricted", vce="plugin"))
+rdd <- rddensity(X = margin)
+rdplotdensity(rdd, margin)
+rdplotdensity(rdd, margin, lcol = c("black", "black"), xlabel = "margin",plotRange = c(-50, 50), plotN = 100)
+summary(rdbwdensity(X = margin))
+tmp <- rdbwdensity(X = margin)
+hr <- tmp$h[2,1]
+summary(rddensity(X = margin, h=c(10,hr)))
+summary(rddensity(X = margin, kernel = "uniform"))
+summary(rddensity(X = margin, bwselect = "diff"))
+summary(rddensity(X = margin, h = c(10,15)))
+summary(rddensity(X = margin, p = 2, q = 4))
+summary(rddensity(X = margin, c = 5, all = TRUE))
+summary(rdbwdensity(X = margin, p = 3, fitselect = "restricted"))
+summary(rdbwdensity(X = margin, kernel = "uniform", vce = "jackknife"))
+```
+
+---
+# `rdmulti`: 多重断点和得分
+
+
+
+
+
+
