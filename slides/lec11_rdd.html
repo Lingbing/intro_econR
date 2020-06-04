@@ -43,7 +43,7 @@ X_i =&amp;
 
 回归断点设计的主要思路是利用 `\(W_i=c\)` 附近的观测值具有相似的特性，但是由于阈值的存在而分别进入了处理组和控制组。因此 `\(\beta_1\)` 是对于这一小部分观测值的因果效应的估计。
 
-此处的RDD也称为 sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
+此处的RDD也称为 Sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
 
 ---
 # RDD 假设
@@ -56,12 +56,12 @@ RDD的关键假设是：
 
 1. 在很多场景下，个体对他们的得分能够施加影响
 
-2. 这本身是一个不可检验的假设 (untestable assumption)
+2. 这本身是一个不可检验的假设 (untestable assumption)。为什么？
 
 ---
 # RDD 数据模拟
 .pull-left[
-- 在0处模拟一个sharp RDD场景
+- 在0处模拟一个Sharp RDD场景
 
 - RDD效应值为2
 
@@ -101,19 +101,20 @@ summary(rdd_mod)
 &gt; 
 &gt; Residuals:
 &gt;     Min      1Q  Median      3Q     Max 
-&gt; -3.6445 -0.6478 -0.0130  0.6678  3.1830 
+&gt; -3.3987 -0.6672  0.0251  0.6651  3.1138 
 &gt; 
 &gt; Coefficients:
 &gt;             Estimate Std. Error t value Pr(&gt;|t|)    
-&gt; (Intercept)  2.90358    0.07239   40.11   &lt;2e-16 ***
-&gt; D           10.15692    0.12738   79.74   &lt;2e-16 ***
-&gt; x            1.81421    0.11196   16.20   &lt;2e-16 ***
+&gt; (Intercept)  2.94845    0.07269   40.56   &lt;2e-16 ***
+&gt; D           10.01572    0.13037   76.83   &lt;2e-16 ***
+&gt; x            2.01102    0.10900   18.45   &lt;2e-16 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 &gt; 
-&gt; Residual standard error: 1.008 on 997 degrees of freedom
-&gt; Multiple R-squared:  0.9725,	Adjusted R-squared:  0.9725 
-&gt; F-statistic: 1.764e+04 on 2 and 997 DF,  p-value: &lt; 2.2e-16
+&gt; Residual standard error: 1.003 on 997 degrees of freedom
+&gt; Multiple R-squared:  0.9735,	Adjusted R-squared:  0.9734 
+&gt; F-statistic: 1.828e+04 on 2 and 997 DF,  p-value: &lt; 2.2e-16
 ```
 ]
 .pull-right[
@@ -124,10 +125,8 @@ summary(rdd_mod)
 ---
 # Fuzzy RDD 及模拟
 
-
-
 .pull-left[
-如果超越阈值并不是接受干预的唯一原因，那么sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
+如果超越阈值并不是接受干预的唯一原因，那么Sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
 
 `$$\begin{align*}
   Z_i = \begin{cases}
@@ -175,7 +174,8 @@ frdd_mod
 &gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
 &gt; D 1.981297   0.084696  23.393 &lt; 2.2e-16 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ---
@@ -205,7 +205,8 @@ srdd_mod
 &gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
 &gt; D 1.585038   0.067756  23.393 &lt; 2.2e-16 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ---
@@ -248,7 +249,8 @@ house_reg1
 &gt;    Estimate Std. Error t value  Pr(&gt;|t|)    
 &gt; D 0.1182314  0.0056799  20.816 &lt; 2.2e-16 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 ]
 
@@ -267,12 +269,13 @@ house_reg2
 &gt;   Estimate Std. Error t value  Pr(&gt;|t|)    
 &gt; D 0.076590   0.013239  5.7851 7.582e-09 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 ]
 
 ---
-# McCracy 密度测试
+# McCrary 密度测试
 
 
 ```r
@@ -283,7 +286,8 @@ dens_test(rdd_dat)
 
 ```
 &gt; 
-&gt; 	McCrary Test for no discontinuity of density around cutpoint
+&gt; 	McCrary Test for no discontinuity of density
+&gt; 	around cutpoint
 &gt; 
 &gt; data:  rdd_dat
 &gt; z-val = 1.2952, p-value = 0.1952
@@ -320,7 +324,8 @@ print(reg_nonpara)
 &gt;   Estimate Std. Error z value  Pr(&gt;|z|)    
 &gt; D 0.079924   0.009465  8.4443 &lt; 2.2e-16 ***
 &gt; ---
-&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; Signif. codes:  
+&gt; 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ---
@@ -363,11 +368,18 @@ plotPlacebo(reg_nonpara)
 - `rddtools`设计的较为简洁，可以实现一些基本的估计、带宽选择、敏感性测试、安慰剂检验等操作。但是目前的文档还不是很完善。
 官方网页为：http://qua.st/rddtools/docs/quick-start-guide/
 
+- RD software: (https://sites.google.com/site/rdpackages/home) 提供了一系列进行RDD研究的工具. 
+
+- 均提供了R和Stata版本。
+
+
 - `rdrobust`: 提供了sharp, fuzzy 和 Kink RDD的估计和作图函数。
 
 - 其中的`rdbwselect()`函数提供了不同的带宽最优选择方法
 
 - `rdplot()`提供了方便的RD作图函数。
+
+- 还包括rdlocrand, rddensity, rdmulti, rdpower包。
 
 ---
 # `rdrobust`包介绍：作图
@@ -714,7 +726,29 @@ summary(rdbwdensity(X = margin, kernel = "uniform", vce = "jackknife"))
 ```
 
 ---
-# `rdmulti`: 多重断点和得分
+# `rdmulti`: 多重断点和得分值
+.pull-left[
+
+```r
+library(rdmulti)
+data &lt;- read.csv('data/simdata_multic.csv')
+Y &lt;- data$y
+X &lt;- data$x
+C &lt;- data$c
+aux &lt;- rdmcplot(Y,X,C,ci=95,nodraw=TRUE)
+```
+]
+
+
+.pull-right[
+
+```r
+aux$rdmc_plot
+```
+
+&lt;img src="lec11_rdd_files/figure-html/unnamed-chunk-37-1.png" width="504" /&gt;
+
+]
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

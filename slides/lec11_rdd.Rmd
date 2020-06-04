@@ -55,7 +55,7 @@ X_i =&
 
 回归断点设计的主要思路是利用 $W_i=c$ 附近的观测值具有相似的特性，但是由于阈值的存在而分别进入了处理组和控制组。因此 $\beta_1$ 是对于这一小部分观测值的因果效应的估计。
 
-此处的RDD也称为 sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
+此处的RDD也称为 Sharp RDD，即干预机制是由一个固定的阈值所决定的，大于此阈值的获得干预，小于阈值的未获得干预。
 
 ---
 # RDD 假设
@@ -68,12 +68,12 @@ RDD的关键假设是：
 
 1. 在很多场景下，个体对他们的得分能够施加影响
 
-2. 这本身是一个不可检验的假设 (untestable assumption)
+2. 这本身是一个不可检验的假设 (untestable assumption)。为什么？
 
 ---
 # RDD 数据模拟
 .pull-left[
-- 在0处模拟一个sharp RDD场景
+- 在0处模拟一个Sharp RDD场景
 
 - RDD效应值为2
 
@@ -131,10 +131,8 @@ plot(rdd_mod,
 ---
 # Fuzzy RDD 及模拟
 
-
-
 .pull-left[
-如果超越阈值并不是接受干预的唯一原因，那么sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
+如果超越阈值并不是接受干预的唯一原因，那么Sharp RDD的决定性机制将不再现实。此时阈值可以理解为接受干预*概率*的跳板。
 
 $$\begin{align*}
   Z_i = \begin{cases}
@@ -245,7 +243,7 @@ house_reg2
 ]
 
 ---
-# McCracy 密度测试
+# McCrary 密度测试
 
 ```{r fig.align='center', fig.width=7}
 dens_test(rdd_dat)
@@ -304,11 +302,18 @@ plotPlacebo(reg_nonpara)
 - `rddtools`设计的较为简洁，可以实现一些基本的估计、带宽选择、敏感性测试、安慰剂检验等操作。但是目前的文档还不是很完善。
 官方网页为：http://qua.st/rddtools/docs/quick-start-guide/
 
+- RD software: (https://sites.google.com/site/rdpackages/home) 提供了一系列进行RDD研究的工具. 
+
+- 均提供了R和Stata版本。
+
+
 - `rdrobust`: 提供了sharp, fuzzy 和 Kink RDD的估计和作图函数。
 
 - 其中的`rdbwselect()`函数提供了不同的带宽最优选择方法
 
 - `rdplot()`提供了方便的RD作图函数。
+
+- 还包括rdlocrand, rddensity, rdmulti, rdpower包。
 
 ---
 # `rdrobust`包介绍：作图
@@ -501,8 +506,25 @@ summary(rdbwdensity(X = margin, kernel = "uniform", vce = "jackknife"))
 ```
 
 ---
-# `rdmulti`: 多重断点和得分
+# `rdmulti`: 多重断点和得分值
+.pull-left[
+```{r}
+library(rdmulti)
+data <- read.csv('data/simdata_multic.csv')
+Y <- data$y
+X <- data$x
+C <- data$c
+aux <- rdmcplot(Y,X,C,ci=95,nodraw=TRUE)
+```
+]
 
+
+.pull-right[
+```{r fig.height=6}
+aux$rdmc_plot
+```
+
+]
 
 
 
