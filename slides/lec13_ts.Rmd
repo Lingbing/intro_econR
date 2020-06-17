@@ -1,0 +1,652 @@
+---
+title: "时间序列分析简介"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(AER)
+library(stargazer)
+library(sjPlot)
+library(readxl)
+library(sjmisc)
+library(quantmod)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
+```
+# 时间序列数据
+
+- 时间序列数据特殊之处就是其数据应包含时间戳 (date stamp)信息。
+
+- 在R中，可以用`xts`包对时间序列包进行预处理，以方便后续分析和作图。
+
+```{r}
+USMacroSWQ <- read_xlsx("data/us_macro_quarterly.xlsx",
+                         sheet = 1,
+                         col_types = c("text", rep("numeric", 9)))
+USMacroSWQ$...1 <- as.yearqtr(USMacroSWQ$...1, format = "%Y:0%q")
+colnames(USMacroSWQ) <- c("Date", "GDPC96", "JAPAN_IP", "PCECTPI", 
+                          "GS10", "GS1", "TB3MS", "UNRATE", "EXUSUK", "CPIAUCSL")
+GDP <- xts(USMacroSWQ$GDPC96, USMacroSWQ$Date)["1960::2013"]
+# GDP growth series as xts object
+GDPGrowth <- xts(400 * log(GDP/lag(GDP)))
+```
+
+---
+# 时间序列作图
+```{r}
+plot(log(GDP),col = "steelblue",lwd = 2,ylab = "Logarithm",xlab = "Date",main = "U.S. Quarterly Real GDP")
+```
+
+# 自相关函数
+
+$$\begin{align*}
+  j^{th} \text{autocovariance} =& \, Cov(Y_t,Y_{t-j}), \\
+  j^{th} \text{autocorrelation} = \rho_j =& \, \rho_{Y_t,Y_{t-j}} = \frac{Cov(Y_t,Y_{t-j)}}{\sqrt{Var(Y_t)Var(Y_{t-j})}}.
+\end{align*}$$
+
+```{r}
+acf(na.omit(GDPGrowth), lag.max = 4, plot = F)
+```
+
+---
+# 其他类型的经济时间序列数据
+```{r echo=F, fig.align='center', fig.height=7}
+USUnemp <- xts(USMacroSWQ$UNRATE, USMacroSWQ$Date)["1960::2013"]
+
+DollarPoundFX <- xts(USMacroSWQ$EXUSUK, USMacroSWQ$Date)["1960::2013"]
+  
+JPIndProd <- xts(log(USMacroSWQ$JAPAN_IP), USMacroSWQ$Date)["1960::2013"]
+
+# attach NYSESW data
+data("NYSESW")  
+NYSESW <- xts(Delt(NYSESW))
+par(mfrow = c(2, 2))
+# plot the series
+plot(as.zoo(USUnemp),
+     col = "steelblue",
+     lwd = 2,
+     ylab = "Percent",
+     xlab = "Date",
+     main = "US Unemployment Rate",
+     cex.main = 1)
+
+plot(as.zoo(DollarPoundFX),
+     col = "steelblue",
+     lwd = 2,
+     ylab = "Dollar per pound",
+     xlab = "Date",
+     main = "U.S. Dollar / B. Pound Exchange Rate",
+     cex.main = 1)
+
+plot(as.zoo(JPIndProd),
+     col = "steelblue",
+     lwd = 2,
+     ylab = "Logarithm",
+     xlab = "Date",
+     main = "Japanese Industrial Production",
+     cex.main = 1)
+
+plot(as.zoo(NYSESW),
+     col = "steelblue",
+     lwd = 2,
+     ylab = "Percent per Day",
+     xlab = "Date",
+     main = "New York Stock Exchange Composite Index",
+     cex.main = 1)
+```
+---
+# ACF 图
+```{r fig.height=7, fig.align='center'}
+acf(na.omit(NYSESW), main = "Sample Autocorrelation for NYSESW Data")
+```
+---
+# 自回归模型 （AR模型）
+
+$$\begin{align*}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + u_t
+\end{align*}$$
+
+```{r}
+GDPGRSub <- GDPGrowth["1962::2012"]
+ar.ols(GDPGRSub, order.max = 1, demean = F, intercept = T)
+```
+如果用`lm`来做会复杂一些，但结果是一样的：
+```{r}
+N <-length(GDPGRSub)
+GDPGR_level <- as.numeric(GDPGRSub[-1])
+GDPGR_lags <- as.numeric(GDPGRSub[-N])
+armod <- lm(GDPGR_level ~ GDPGR_lags)
+```
+
+---
+# AR(1) 拟合结果与预测
+
+```{r}
+coeftest(armod, vcov. = vcovHC, type = "HC1")
+```
+
+$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.351)}{1.995} + \underset{(0.076)}{0.338} GDPGR_{t-1}
+\end{align}$$
+
+向前一步预测：
+$$\begin{align*}
+  \widehat{Y}_{T+1\vert T} = \hat{\beta}_0 + \hat{\beta}_1 Y_T.
+\end{align*}$$
+
+预测误差不同于回归残差，它用到的是样本外值。
+
+$$\begin{align*}
+  \text{Forecast error} = Y_{T+1} - \widehat{Y}_{T+1\vert T}.
+\end{align*}$$
+
+$$\begin{align*}
+  RMSFE = \sqrt{E\left[\left(Y_{T+1} - \widehat{Y}_{T+1\vert T}\right)^2\right]}.
+\end{align*}$$
+
+---
+# 时间序列预测实例
+
+$$\begin{align*}
+  \widehat{GDPGR}_{2013:Q1} = 1.995 + 0.348 \cdot 0.15 = 2.047.
+\end{align*}$$
+`forecast`包是R用于时间序列预测的流行包。
+
+```{r}
+library(forecast)
+new <- data.frame("GDPGR_lags" = GDPGR_level[N-1])
+forecast(armod, newdata = new)
+```
+该AR(1)模型的向前一步预测误差很大，因为我们知道预测时间点上的真实观测值为：$GDPGR_{2013:Q1} \approx 1.1\%$
+```{r}
+forecast(armod, newdata = new)$mean - GDPGrowth["2013"][1]
+```
+
+```{r}
+summary(armod)$r.squared
+```
+
+---
+# AR(p)模型
+
+$$\begin{align*}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_p Y_{t-p} + u_t
+\end{align*}$$
+
+可以使用`dynlm`估计AR多阶模型。
+```{r}
+library(dynlm)
+GDPGR_AR2 <- dynlm(ts(GDPGR_level) ~ L(ts(GDPGR_level)) + L(ts(GDPGR_level), 2))
+
+coeftest(GDPGR_AR2, vcov. = sandwich)
+```
+$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.40)}{1.63} + \underset{(0.08)}{0.28} GDPGR_{t-1} + \underset{(0.08)}{0.18} GDPGR_{t-1}. 
+\end{align}$$
+
+---
+# AR(2)模型的预测效果
+```{r}
+summary(GDPGR_AR2)$r.squared
+forecast <- c("2013:Q1" = coef(GDPGR_AR2) %*% c(1, GDPGR_level[N-1], GDPGR_level[N-2]))
+GDPGrowth["2013"][1] - forecast
+```
+
+---
+# 应用：你能战胜市场吗？
+
+- 数据预处理
+```{r}
+SReturns <- read_xlsx("Data/Stock_Returns_1931_2002.xlsx",sheet = 1,col_types = "numeric")
+# convert to ts object
+StockReturns <- ts(SReturns[, 3:4], start = c(1931, 1),end = c(2002, 12), frequency = 12)
+```
+
+- 建立AR模型
+```{r}
+# AR(1)
+SR_AR1 <- dynlm(ExReturn ~ L(ExReturn), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# AR(2)
+SR_AR2 <- dynlm(ExReturn ~ L(ExReturn) + L(ExReturn, 2), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# AR(4)
+SR_AR4 <- dynlm(ExReturn ~ L(ExReturn) + L(ExReturn, 1:4), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# 计算稳健标准误
+rob_se <- list(sqrt(diag(sandwich(SR_AR1))),
+               sqrt(diag(sandwich(SR_AR2))),
+               sqrt(diag(sandwich(SR_AR4))))
+```
+
+---
+# 用`stargazer`汇报模型汇总结果
+
+```{r results='asis', echo=F}
+stargazer(SR_AR1, SR_AR2, SR_AR4,
+  title = "Autoregressive Models of Monthly Excess Stock Returns",type = "html",
+  header = FALSE, 
+  model.numbers = F,
+  omit.table.layout = "n",
+  digits = 3, 
+  column.labels = c("AR(1)", "AR(2)", "AR(4)"),
+  dep.var.caption  = "Dependent Variable: Excess Returns on the CSRP Value-Weighted Index",
+  dep.var.labels.include = FALSE,
+  covariate.labels = c("$excess return_{t-1}$", "$excess return_{t-2}$", 
+                       "$excess return_{t-3}$", "$excess return_{t-4}$", 
+                       "Intercept"),
+  se = rob_se, single.row = T,
+  omit.stat = "rsq") 
+```
+
+---
+# ADL模型
+
+除了用序列本身的滞后项做回归，也可以在时间序列回归中加入其它变量的滞后项，这样的模型称为ADL(Autoregressive Distributed Lag)模型：
+
+$$\begin{align*}
+  Y_t =& \, \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_p Y_{t-p} \\ 
+      &+ \, \delta_1 X_{t-1} + \delta_2 X_{t-2} + \dots + \delta_q X_{t-q} X_{t-q} + u_t.
+\end{align*}$$
+
+```{r}
+# 3-months Treasury bills interest rate
+TB3MS <- xts(USMacroSWQ$TB3MS, USMacroSWQ$Date)["1960::2012"]
+
+# 10-years Treasury bonds interest rate
+TB10YS <- xts(USMacroSWQ$GS10, USMacroSWQ$Date)["1960::2012"]
+
+# term spread
+TSpread <- TB10YS - TB3MS
+```
+
+---
+# ADL 建模
+```{r}
+GDPGrowth_ts <- ts(GDPGrowth, start = c(1960, 1), end = c(2013, 4), frequency = 4)
+TSpread_ts <- ts(TSpread, start = c(1960, 1), end = c(2012, 4), frequency = 4)
+ADLdata <- ts.union(GDPGrowth_ts, TSpread_ts)
+GDPGR_ADL21 <- dynlm(GDPGrowth_ts ~ L(GDPGrowth_ts) + L(GDPGrowth_ts, 2) + L(TSpread_ts), 
+      start = c(1962, 1), end = c(2012, 4))
+coeftest(GDPGR_ADL21, vcov. = sandwich)
+```
+$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.49)}{0.96} + \underset{(0.08)}{0.26} GDPGR_{t-1} + \underset{(0.08)}{0.19} GDPGR_{t-2} + \underset{(0.18)}{0.44} TSpread_{t-1} \tag{14.4}
+\end{align}$$
+
+---
+# 预测误差
+```{r}
+subset <- window(ADLdata, c(2012, 3), c(2012, 4))
+
+# ADL(2,1) GDP growth forecast for 2013:Q1
+ADL21_forecast <- coef(GDPGR_ADL21) %*% c(1, subset[2, 1], subset[1, 1], subset[2, 2])
+ADL21_forecast
+window(GDPGrowth_ts, c(2013, 1), c(2013, 1)) - ADL21_forecast
+```
+
+---
+# 增广为ADL(2, 2)
+
+```{r}
+GDPGR_ADL22 <- dynlm(GDPGrowth_ts ~ L(GDPGrowth_ts) + L(GDPGrowth_ts, 2) + L(TSpread_ts) + L(TSpread_ts, 2), start = c(1962, 1), end = c(2012, 4))
+coeftest(GDPGR_ADL22, vcov. = sandwich)
+
+```
+$$\begin{align}
+  \begin{split}
+    \widehat{GDPGR}_t =& \underset{(0.47)}{0.98} + \underset{(0.08)}{0.24} GDPGR_{t-1} \\
+    & + \underset{(0.08)}{0.18} GDPGR_{t-2} -\underset{(0.42)}{0.14} TSpread_{t-1} + \underset{(0.43)}{0.66} TSpread_{t-2}.
+  \end{split} \tag{14.5}
+\end{align}$$
+---
+# 预测比较
+```{r}
+ADL22_forecast <- coef(GDPGR_ADL22) %*% c(1, subset[2, 1], subset[1, 1], subset[2, 2], subset[1, 2])
+ADL22_forecast
+window(GDPGrowth_ts, c(2013, 1), c(2013, 1)) - ADL22_forecast
+c("Adj.R2 AR(2)" = summary(GDPGR_AR2)$r.squared,
+  "Adj.R2 ADL(2,1)" = summary(GDPGR_ADL21)$r.squared,
+  "Adj.R2 ADL(2,2)" = summary(GDPGR_ADL22)$r.squared)
+```
+
+---
+# 预测误差及预测区间
+.pull-left[
+```{r eval=F}
+# set seed
+set.seed(1234)
+
+# simulate the time series
+Y <- arima.sim(list(order = c(2, 0, 0), ar = c(0.2, 0.2)),  n = 200)
+
+# estimate an AR(2) model using 'arima()', see ?arima
+model <- arima(Y, order = c(2, 0, 0))
+
+# compute points forecasts and prediction intervals for the next 25 periods
+fc <- forecast(model, h = 25, level = seq(5, 99, 10))
+
+# plot a fan chart
+plot(fc, 
+     main = "Forecast Fan Chart for AR(2) Model of Simulated Data", 
+     showgap = F, 
+     fcol = "red",
+     flty = 2)
+```
+]
+
+.pull-right[
+```{r echo=F}
+# set seed
+set.seed(1234)
+
+# simulate the time series
+Y <- arima.sim(list(order = c(2, 0, 0), ar = c(0.2, 0.2)),  n = 200)
+
+# estimate an AR(2) model using 'arima()', see ?arima
+model <- arima(Y, order = c(2, 0, 0))
+
+# compute points forecasts and prediction intervals for the next 25 periods
+fc <- forecast(model, h = 25, level = seq(5, 99, 10))
+
+# plot a fan chart
+plot(fc, 
+     main = "Forecast Fan Chart for AR(2) Model of Simulated Data", 
+     showgap = F, 
+     fcol = "red",
+     flty = 2)
+```
+]
+
+---
+# 平稳性及其检验
+
+.pull-left[
+随机游走过程是典型的具有随机趋势(stochastic trend)的非平稳序列。
+
+随机游走过程又称作单位根过程。检验时间序列的平稳性往往明确为检验其是否含有单位根，因此也称为单位根检验。
+
+```{r eval=F}
+set.seed(1)
+
+RWs <- ts(replicate(n = 4, 
+            arima.sim(model = list(order = c(0, 1 ,0)), n = 100)))
+
+matplot(RWs, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks",
+        xlab = "Time",
+        ylab = "Value")
+```
+]
+.pull-right[
+```{r echo=F}
+set.seed(1)
+
+RWs <- ts(replicate(n = 4, 
+            arima.sim(model = list(order = c(0, 1 ,0)), n = 100)))
+
+matplot(RWs, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks",
+        xlab = "Time",
+        ylab = "Value")
+```
+]
+---
+# 带漂移项的随机游走过程
+
+.pull-left[
+在随机游走过程中加入常数项会导致序列产生漂移现象:
+
+$$\begin{align}
+  Y_t = \beta_0 + Y_{t-1} + u_t \tag{14.7},
+\end{align}$$
+```{r eval=F}
+set.seed(1)
+
+RWsd <- ts(replicate(n = 4, 
+           arima.sim(model = list(order = c(0, 1, 0)), 
+                     n = 100,
+                     mean = -0.2)))
+
+matplot(RWsd, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks with Drift",
+        xlab = "Time",
+        ylab = "Value")
+```
+
+]
+.pull-right[
+```{r echo=F}
+set.seed(1)
+
+RWsd <- ts(replicate(n = 4, 
+           arima.sim(model = list(order = c(0, 1, 0)), 
+                     n = 100,
+                     mean = -0.2)))
+
+matplot(RWsd, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks with Drift",
+        xlab = "Time",
+        ylab = "Value")
+```
+
+]
+
+---
+# 非平稳回归变量的问题
+
+.pull-left[
+如果回归中某个变量是非平稳的，那么回归将可能有以下问题：
+
+- 回归变量显著性检验的t统计量分布难以确定（明显非正态），因此显著性结论也是失效的。
+
+- 伪回归问题：两个非平稳过程回归可能产生显著的结论，并且R方很高，但很可能两个变量间完全没有任何逻辑关系。比如：
+$$\begin{align*}
+  Red_t = \beta_0 + \beta_1 Green_{t-1} + u_t.
+\end{align*}$$
+
+```{r eval=F}
+matplot(RWs[, c(2, 3)], 
+        lty = 1,
+        lwd = 2,
+        type = "l",
+        col = c("darkgreen", "darkred"),
+        xlab = "Time",
+        ylab = "",
+        main = "A Spurious Relationship") 
+```
+
+]
+.pull-right[
+```{r echo=F, fig.height=5}
+matplot(RWs[, c(2, 3)], 
+        lty = 1,
+        lwd = 2,
+        type = "l",
+        col = c("darkgreen", "darkred"),
+        xlab = "Time",
+        ylab = "",
+        main = "A Spurious Relationship") 
+```
+```{r}
+summary(dynlm(RWs[, 2] ~ L(RWs[, 3])))$coefficients
+```
+
+]
+
+---
+# 伪回归实例
+.pull-left[
+```{r echo=F}
+plot(merge(as.zoo(USUnemp), as.zoo(JPIndProd)), 
+     plot.type = "single", 
+     col = c("darkred", "steelblue"),
+     lwd = 2,
+     xlab = "Date",
+     ylab = "",
+     main = "Spurious Regression: Macroeconomic Time series")
+legend("topleft", 
+       legend = c("USUnemp", "JPIndProd"),
+       col = c("darkred", "steelblue"),
+       lwd = c(2, 2))
+```
+
+]
+.pull-right[
+```{r eval=F}
+SR_Unemp1 <- dynlm(ts(USUnemp["1962::1985"]) ~ ts(JPIndProd["1962::1985"]))
+coeftest(SR_Unemp1, vcov = sandwich)
+```
+$$\begin{align}
+  \widehat{U.S. UR}_t = -\underset{(1.12)}{2.37} + \underset{(0.29)}{2.22} \log(JapaneseIP_t)
+\end{align}$$
+
+```{r eval=F}
+SR_Unemp2 <- dynlm(ts(USUnemp["1986::2012"]) ~ ts(JPIndProd["1986::2012"]))
+coeftest(SR_Unemp2, vcov = sandwich)
+```
+$$\begin{align}
+  \widehat{U.S. UR}_t = \underset{(5.41)}{41.78} -\underset{(1.17)}{7.78} \log(JapaneseIP)_t
+\end{align}$$
+]
+
+---
+# 单位根检验
+
+Dickey & Fuller (1979): AR(1) 模型的根为1
+
+$$\begin{align*}
+  H_0: \beta_1 = 1 \ \ \ \text{vs.} \ \ \ H_1: \lvert\beta_1\rvert < 1.
+\end{align*}$$
+或者写为
+$$\begin{align}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + u_t \ \ \Leftrightarrow \ \ \Delta Y_t = \beta_0 + \delta Y_{t-1} + u_t 
+\end{align}$$
+
+$$\begin{align*}
+  H_0: \delta = 0 \ \ \ \text{vs.} \ \ \ H_1: \delta < 0
+\end{align*}$$
+
+将AR(1)扩展到AR(P)模型，得到ADF检验
+
+$$\begin{align}
+  \Delta Y_t = \beta_0 + \delta Y_{t-1} + \gamma_1 \Delta_1 Y_{t-1} + \gamma_2 \Delta Y_{t-2} + \dots + \gamma_p \Delta Y_{t-p} + u_t.
+\end{align}$$
+
+$H_0: \delta = 0 \ \ \ \text{vs.} \ \ \ H_1: \delta < 0$
+
+如果Y中有确定性的时间趋势，检验模型为
+
+$$\begin{align}
+  \Delta Y_t = \beta_0 + at + \delta Y_{t-1} + \gamma_1 \Delta_1 Y_{t-1} + \gamma_2 \Delta Y_{t-2} + \dots + \gamma_p \Delta Y_{t-p} + u_t, 
+\end{align}$$
+
+---
+# 单位根检验实例
+检验美国GDP序列中是否存在单位根
+$$\begin{align*}
+  \Delta\log(GDP_t) = \beta_0 + \alpha t + \beta_1 \log(GDP_{t-1}) + \beta_2 \Delta \log(GDP_{t-1}) + \beta_3 \Delta \log(GDP_{t-2}) + u_t.
+\end{align*}$$
+
+```{r}
+LogGDP <- ts(log(GDP["1962::2012"]))
+coeftest(
+  dynlm(diff(LogGDP) ~ trend(LogGDP, scale = F) + L(LogGDP) 
+                     + diff(L(LogGDP)) + diff(L(LogGDP), 2)))
+```
+
+$$\begin{align*}
+  \Delta\log(GDP_t) =& \underset{(0.118)}{0.28} + \underset{(0.0001)}{0.0002} t -\underset{(0.014)}{0.033} \log(GDP_{t-1}) \\
+   & + \underset{(0.113)}{0.083} \Delta \log(GDP_{t-1}) + \underset{(0.071)}{0.188} \Delta \log(GDP_{t-2}) + u_t,
+\end{align*}$$
+---
+# ADF检验统计量
+
+此处的ADF t统计量为：$t=-0.033/0.014 = - 2.35$，但是其拒绝域的临界值不是由t分布得到，需要通过模拟获得。在R中可以通过`ur.df()`函数进行ADF检验：
+```{r}
+library(urca)
+summary(ur.df(LogGDP, 
+              type = "trend", 
+              lags = 2, 
+              selectlags = "Fixed"))
+```
+
+
+---
+# 时间序列回归与格兰杰因果
+
+$$
+\begin{equation}
+  \begin{aligned}
+  Y_t =&  \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_{p} Y_{t-p} \\
+      &+  \delta_{11} X_{1,t-1} + \delta_{12} X_{1,t-2} + \dots + \delta_{1q} X_{1,t-q} \\
+      &+  \dots \\
+      &+  \delta_{k1} X_{k,t-1} + \delta_{k2} X_{k,t-2} + \dots + \delta_{kq} X_{k,t-q} \\
+      &+  u_t 
+  \end{aligned}
+\end{equation}
+$$
+如果以上回归中的X的系数不全为0，则代表X的过去值有助于预测Y，则称X为Y的格兰杰因 (Granger cause)
+
+格兰杰因果检验从本质上就是一个ADL回归联合系数F检验。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

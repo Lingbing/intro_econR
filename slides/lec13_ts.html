@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>时间序列分析简介</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 时间序列分析简介
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+# 时间序列数据
+
+- 时间序列数据特殊之处就是其数据应包含时间戳 (date stamp)信息。
+
+- 在R中，可以用`xts`包对时间序列包进行预处理，以方便后续分析和作图。
+
+
+```r
+USMacroSWQ &lt;- read_xlsx("data/us_macro_quarterly.xlsx",
+                         sheet = 1,
+                         col_types = c("text", rep("numeric", 9)))
+USMacroSWQ$...1 &lt;- as.yearqtr(USMacroSWQ$...1, format = "%Y:0%q")
+colnames(USMacroSWQ) &lt;- c("Date", "GDPC96", "JAPAN_IP", "PCECTPI", 
+                          "GS10", "GS1", "TB3MS", "UNRATE", "EXUSUK", "CPIAUCSL")
+GDP &lt;- xts(USMacroSWQ$GDPC96, USMacroSWQ$Date)["1960::2013"]
+# GDP growth series as xts object
+GDPGrowth &lt;- xts(400 * log(GDP/lag(GDP)))
+```
+
+---
+# 时间序列作图
+
+```r
+plot(log(GDP),col = "steelblue",lwd = 2,ylab = "Logarithm",xlab = "Date",main = "U.S. Quarterly Real GDP")
+```
+
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;
+
+# 自相关函数
+
+`$$\begin{align*}
+  j^{th} \text{autocovariance} =&amp; \, Cov(Y_t,Y_{t-j}), \\
+  j^{th} \text{autocorrelation} = \rho_j =&amp; \, \rho_{Y_t,Y_{t-j}} = \frac{Cov(Y_t,Y_{t-j)}}{\sqrt{Var(Y_t)Var(Y_{t-j})}}.
+\end{align*}$$`
+
+
+```r
+acf(na.omit(GDPGrowth), lag.max = 4, plot = F)
+&gt; 
+&gt; Autocorrelations of series 'na.omit(GDPGrowth)', by lag
+&gt; 
+&gt;  0.00  0.25  0.50  0.75  1.00 
+&gt; 1.000 0.352 0.273 0.114 0.106
+```
+
+---
+# 其他类型的经济时间序列数据
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-4-1.png" width="504" style="display: block; margin: auto;" /&gt;
+---
+# ACF 图
+
+```r
+acf(na.omit(NYSESW), main = "Sample Autocorrelation for NYSESW Data")
+```
+
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-5-1.png" width="504" style="display: block; margin: auto;" /&gt;
+---
+# 自回归模型 （AR模型）
+
+`$$\begin{align*}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + u_t
+\end{align*}$$`
+
+
+```r
+GDPGRSub &lt;- GDPGrowth["1962::2012"]
+ar.ols(GDPGRSub, order.max = 1, demean = F, intercept = T)
+&gt; 
+&gt; Call:
+&gt; ar.ols(x = GDPGRSub, order.max = 1, demean = F, intercept = T)
+&gt; 
+&gt; Coefficients:
+&gt;      1  
+&gt; 0.3384  
+&gt; 
+&gt; Intercept: 1.995 (0.2993) 
+&gt; 
+&gt; Order selected 1  sigma^2 estimated as  9.886
+```
+如果用`lm`来做会复杂一些，但结果是一样的：
+
+```r
+N &lt;-length(GDPGRSub)
+GDPGR_level &lt;- as.numeric(GDPGRSub[-1])
+GDPGR_lags &lt;- as.numeric(GDPGRSub[-N])
+armod &lt;- lm(GDPGR_level ~ GDPGR_lags)
+```
+
+---
+# AR(1) 拟合结果与预测
+
+
+```r
+coeftest(armod, vcov. = vcovHC, type = "HC1")
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;             Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept) 1.994986   0.351274  5.6793 4.691e-08 ***
+&gt; GDPGR_lags  0.338436   0.076188  4.4421 1.470e-05 ***
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+`$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.351)}{1.995} + \underset{(0.076)}{0.338} GDPGR_{t-1}
+\end{align}$$`
+
+向前一步预测：
+`$$\begin{align*}
+  \widehat{Y}_{T+1\vert T} = \hat{\beta}_0 + \hat{\beta}_1 Y_T.
+\end{align*}$$`
+
+预测误差不同于回归残差，它用到的是样本外值。
+
+`$$\begin{align*}
+  \text{Forecast error} = Y_{T+1} - \widehat{Y}_{T+1\vert T}.
+\end{align*}$$`
+
+`$$\begin{align*}
+  RMSFE = \sqrt{E\left[\left(Y_{T+1} - \widehat{Y}_{T+1\vert T}\right)^2\right]}.
+\end{align*}$$`
+
+---
+# 时间序列预测实例
+
+`$$\begin{align*}
+  \widehat{GDPGR}_{2013:Q1} = 1.995 + 0.348 \cdot 0.15 = 2.047.
+\end{align*}$$`
+`forecast`包是R用于时间序列预测的流行包。
+
+
+```r
+library(forecast)
+new &lt;- data.frame("GDPGR_lags" = GDPGR_level[N-1])
+forecast(armod, newdata = new)
+&gt;   Point Forecast     Lo 80    Hi 80     Lo 95    Hi 95
+&gt; 1       2.044155 -2.036225 6.124534 -4.213414 8.301723
+```
+该AR(1)模型的向前一步预测误差很大，因为我们知道预测时间点上的真实观测值为：$GDPGR_{2013:Q1} \approx 1.1\%$
+
+```r
+forecast(armod, newdata = new)$mean - GDPGrowth["2013"][1]
+&gt;                 x
+&gt; 2013 Q1 0.9049532
+```
+
+
+```r
+summary(armod)$r.squared
+&gt; [1] 0.1149576
+```
+
+---
+# AR(p)模型
+
+`$$\begin{align*}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_p Y_{t-p} + u_t
+\end{align*}$$`
+
+可以使用`dynlm`估计AR多阶模型。
+
+```r
+library(dynlm)
+GDPGR_AR2 &lt;- dynlm(ts(GDPGR_level) ~ L(ts(GDPGR_level)) + L(ts(GDPGR_level), 2))
+
+coeftest(GDPGR_AR2, vcov. = sandwich)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                       Estimate Std. Error t value  Pr(&gt;|t|)    
+&gt; (Intercept)           1.631747   0.402023  4.0588 7.096e-05 ***
+&gt; L(ts(GDPGR_level))    0.277787   0.079250  3.5052 0.0005643 ***
+&gt; L(ts(GDPGR_level), 2) 0.179269   0.079951  2.2422 0.0260560 *  
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.40)}{1.63} + \underset{(0.08)}{0.28} GDPGR_{t-1} + \underset{(0.08)}{0.18} GDPGR_{t-1}. 
+\end{align}$$`
+
+---
+# AR(2)模型的预测效果
+
+```r
+summary(GDPGR_AR2)$r.squared
+&gt; [1] 0.1425484
+forecast &lt;- c("2013:Q1" = coef(GDPGR_AR2) %*% c(1, GDPGR_level[N-1], GDPGR_level[N-2]))
+GDPGrowth["2013"][1] - forecast
+&gt;                 x
+&gt; 2013 Q1 -1.025358
+```
+
+---
+# 应用：你能战胜市场吗？
+
+- 数据预处理
+
+```r
+SReturns &lt;- read_xlsx("Data/Stock_Returns_1931_2002.xlsx",sheet = 1,col_types = "numeric")
+# convert to ts object
+StockReturns &lt;- ts(SReturns[, 3:4], start = c(1931, 1),end = c(2002, 12), frequency = 12)
+```
+
+- 建立AR模型
+
+```r
+# AR(1)
+SR_AR1 &lt;- dynlm(ExReturn ~ L(ExReturn), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# AR(2)
+SR_AR2 &lt;- dynlm(ExReturn ~ L(ExReturn) + L(ExReturn, 2), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# AR(4)
+SR_AR4 &lt;- dynlm(ExReturn ~ L(ExReturn) + L(ExReturn, 1:4), data = StockReturns, start = c(1960, 1), end = c(2002, 12))
+# 计算稳健标准误
+rob_se &lt;- list(sqrt(diag(sandwich(SR_AR1))),
+               sqrt(diag(sandwich(SR_AR2))),
+               sqrt(diag(sandwich(SR_AR4))))
+```
+
+---
+# 用`stargazer`汇报模型汇总结果
+
+
+&lt;table style="text-align:center"&gt;&lt;caption&gt;&lt;strong&gt;Autoregressive Models of Monthly Excess Stock Returns&lt;/strong&gt;&lt;/caption&gt;
+&lt;tr&gt;&lt;td colspan="4" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;&lt;/td&gt;&lt;td colspan="3"&gt;Dependent Variable: Excess Returns on the CSRP Value-Weighted Index&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td colspan="3" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;&lt;/td&gt;&lt;td&gt;AR(1)&lt;/td&gt;&lt;td&gt;AR(2)&lt;/td&gt;&lt;td&gt;AR(4)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="4" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;excess return&lt;sub&gt;t-1&lt;/sub&gt;&lt;/td&gt;&lt;td&gt;0.050 (0.051)&lt;/td&gt;&lt;td&gt;0.053 (0.051)&lt;/td&gt;&lt;td&gt;0.054 (0.051)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;excess return&lt;sub&gt;t-2&lt;/sub&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;-0.053 (0.048)&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;excess return&lt;sub&gt;t-3&lt;/sub&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;excess return&lt;sub&gt;t-4&lt;/sub&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;-0.054 (0.048)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;Intercept&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;0.009 (0.050)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;L(ExReturn, 1:4)4&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;-0.016 (0.047)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;Constant&lt;/td&gt;&lt;td&gt;0.312 (0.197)&lt;/td&gt;&lt;td&gt;0.328&lt;sup&gt;*&lt;/sup&gt; (0.199)&lt;/td&gt;&lt;td&gt;0.331 (0.202)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="4" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;Observations&lt;/td&gt;&lt;td&gt;516&lt;/td&gt;&lt;td&gt;516&lt;/td&gt;&lt;td&gt;516&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;Adjusted R&lt;sup&gt;2&lt;/sup&gt;&lt;/td&gt;&lt;td&gt;0.001&lt;/td&gt;&lt;td&gt;0.001&lt;/td&gt;&lt;td&gt;-0.002&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;Residual Std. Error&lt;/td&gt;&lt;td&gt;4.334 (df = 514)&lt;/td&gt;&lt;td&gt;4.332 (df = 513)&lt;/td&gt;&lt;td&gt;4.340 (df = 511)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;F Statistic&lt;/td&gt;&lt;td&gt;1.306 (df = 1; 514)&lt;/td&gt;&lt;td&gt;1.367 (df = 2; 513)&lt;/td&gt;&lt;td&gt;0.721 (df = 4; 511)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="4" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+---
+# ADL模型
+
+除了用序列本身的滞后项做回归，也可以在时间序列回归中加入其它变量的滞后项，这样的模型称为ADL(Autoregressive Distributed Lag)模型：
+
+`$$\begin{align*}
+  Y_t =&amp; \, \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_p Y_{t-p} \\ 
+      &amp;+ \, \delta_1 X_{t-1} + \delta_2 X_{t-2} + \dots + \delta_q X_{t-q} X_{t-q} + u_t.
+\end{align*}$$`
+
+
+```r
+# 3-months Treasury bills interest rate
+TB3MS &lt;- xts(USMacroSWQ$TB3MS, USMacroSWQ$Date)["1960::2012"]
+
+# 10-years Treasury bonds interest rate
+TB10YS &lt;- xts(USMacroSWQ$GS10, USMacroSWQ$Date)["1960::2012"]
+
+# term spread
+TSpread &lt;- TB10YS - TB3MS
+```
+
+---
+# ADL 建模
+
+```r
+GDPGrowth_ts &lt;- ts(GDPGrowth, start = c(1960, 1), end = c(2013, 4), frequency = 4)
+TSpread_ts &lt;- ts(TSpread, start = c(1960, 1), end = c(2012, 4), frequency = 4)
+ADLdata &lt;- ts.union(GDPGrowth_ts, TSpread_ts)
+GDPGR_ADL21 &lt;- dynlm(GDPGrowth_ts ~ L(GDPGrowth_ts) + L(GDPGrowth_ts, 2) + L(TSpread_ts), 
+      start = c(1962, 1), end = c(2012, 4))
+coeftest(GDPGR_ADL21, vcov. = sandwich)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                    Estimate Std. Error t value Pr(&gt;|t|)   
+&gt; (Intercept)        0.954990   0.486976  1.9611 0.051260 . 
+&gt; L(GDPGrowth_ts)    0.267729   0.082562  3.2428 0.001387 **
+&gt; L(GDPGrowth_ts, 2) 0.192370   0.077683  2.4763 0.014104 * 
+&gt; L(TSpread_ts)      0.444047   0.182637  2.4313 0.015925 * 
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\begin{align}
+  \widehat{GDPGR}_t = \underset{(0.49)}{0.96} + \underset{(0.08)}{0.26} GDPGR_{t-1} + \underset{(0.08)}{0.19} GDPGR_{t-2} + \underset{(0.18)}{0.44} TSpread_{t-1} \tag{14.4}
+\end{align}$$`
+
+---
+# 预测误差
+
+```r
+subset &lt;- window(ADLdata, c(2012, 3), c(2012, 4))
+
+# ADL(2,1) GDP growth forecast for 2013:Q1
+ADL21_forecast &lt;- coef(GDPGR_ADL21) %*% c(1, subset[2, 1], subset[1, 1], subset[2, 2])
+ADL21_forecast
+&gt;          [,1]
+&gt; [1,] 2.241689
+window(GDPGrowth_ts, c(2013, 1), c(2013, 1)) - ADL21_forecast
+&gt;           Qtr1
+&gt; 2013 -1.102487
+```
+
+---
+# 增广为ADL(2, 2)
+
+
+```r
+GDPGR_ADL22 &lt;- dynlm(GDPGrowth_ts ~ L(GDPGrowth_ts) + L(GDPGrowth_ts, 2) + L(TSpread_ts) + L(TSpread_ts, 2), start = c(1962, 1), end = c(2012, 4))
+coeftest(GDPGR_ADL22, vcov. = sandwich)
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                     Estimate Std. Error t value Pr(&gt;|t|)   
+&gt; (Intercept)         0.967967   0.472470  2.0487 0.041800 * 
+&gt; L(GDPGrowth_ts)     0.243175   0.077836  3.1242 0.002049 **
+&gt; L(GDPGrowth_ts, 2)  0.177070   0.077027  2.2988 0.022555 * 
+&gt; L(TSpread_ts)      -0.139554   0.422162 -0.3306 0.741317   
+&gt; L(TSpread_ts, 2)    0.656347   0.429802  1.5271 0.128326   
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+`$$\begin{align}
+  \begin{split}
+    \widehat{GDPGR}_t =&amp; \underset{(0.47)}{0.98} + \underset{(0.08)}{0.24} GDPGR_{t-1} \\
+    &amp; + \underset{(0.08)}{0.18} GDPGR_{t-2} -\underset{(0.42)}{0.14} TSpread_{t-1} + \underset{(0.43)}{0.66} TSpread_{t-2}.
+  \end{split} \tag{14.5}
+\end{align}$$`
+---
+# 预测比较
+
+```r
+ADL22_forecast &lt;- coef(GDPGR_ADL22) %*% c(1, subset[2, 1], subset[1, 1], subset[2, 2], subset[1, 2])
+ADL22_forecast
+&gt;          [,1]
+&gt; [1,] 2.274407
+window(GDPGrowth_ts, c(2013, 1), c(2013, 1)) - ADL22_forecast
+&gt;           Qtr1
+&gt; 2013 -1.135206
+c("Adj.R2 AR(2)" = summary(GDPGR_AR2)$r.squared,
+  "Adj.R2 ADL(2,1)" = summary(GDPGR_ADL21)$r.squared,
+  "Adj.R2 ADL(2,2)" = summary(GDPGR_ADL22)$r.squared)
+&gt;    Adj.R2 AR(2) Adj.R2 ADL(2,1) Adj.R2 ADL(2,2) 
+&gt;       0.1425484       0.1743996       0.1855245
+```
+
+---
+# 预测误差及预测区间
+.pull-left[
+
+```r
+# set seed
+set.seed(1234)
+
+# simulate the time series
+Y &lt;- arima.sim(list(order = c(2, 0, 0), ar = c(0.2, 0.2)),  n = 200)
+
+# estimate an AR(2) model using 'arima()', see ?arima
+model &lt;- arima(Y, order = c(2, 0, 0))
+
+# compute points forecasts and prediction intervals for the next 25 periods
+fc &lt;- forecast(model, h = 25, level = seq(5, 99, 10))
+
+# plot a fan chart
+plot(fc, 
+     main = "Forecast Fan Chart for AR(2) Model of Simulated Data", 
+     showgap = F, 
+     fcol = "red",
+     flty = 2)
+```
+]
+
+.pull-right[
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-23-1.png" width="504" /&gt;
+]
+
+---
+# 平稳性及其检验
+
+.pull-left[
+随机游走过程是典型的具有随机趋势(stochastic trend)的非平稳序列。
+
+随机游走过程又称作单位根过程。检验时间序列的平稳性往往明确为检验其是否含有单位根，因此也称为单位根检验。
+
+
+```r
+set.seed(1)
+
+RWs &lt;- ts(replicate(n = 4, 
+            arima.sim(model = list(order = c(0, 1 ,0)), n = 100)))
+
+matplot(RWs, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks",
+        xlab = "Time",
+        ylab = "Value")
+```
+]
+.pull-right[
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-25-1.png" width="504" /&gt;
+]
+---
+# 带漂移项的随机游走过程
+
+.pull-left[
+在随机游走过程中加入常数项会导致序列产生漂移现象:
+
+`$$\begin{align}
+  Y_t = \beta_0 + Y_{t-1} + u_t \tag{14.7},
+\end{align}$$`
+
+```r
+set.seed(1)
+
+RWsd &lt;- ts(replicate(n = 4, 
+           arima.sim(model = list(order = c(0, 1, 0)), 
+                     n = 100,
+                     mean = -0.2)))
+
+matplot(RWsd, 
+        type = "l", 
+        col = c("steelblue", "darkgreen", "darkred", "orange"), 
+        lty = 1, 
+        lwd = 2,
+        main = "Four Random Walks with Drift",
+        xlab = "Time",
+        ylab = "Value")
+```
+
+]
+.pull-right[
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-27-1.png" width="504" /&gt;
+
+]
+
+---
+# 非平稳回归变量的问题
+
+.pull-left[
+如果回归中某个变量是非平稳的，那么回归将可能有以下问题：
+
+- 回归变量显著性检验的t统计量分布难以确定（明显非正态），因此显著性结论也是失效的。
+
+- 伪回归问题：两个非平稳过程回归可能产生显著的结论，并且R方很高，但很可能两个变量间完全没有任何逻辑关系。比如：
+`$$\begin{align*}
+  Red_t = \beta_0 + \beta_1 Green_{t-1} + u_t.
+\end{align*}$$`
+
+
+```r
+matplot(RWs[, c(2, 3)], 
+        lty = 1,
+        lwd = 2,
+        type = "l",
+        col = c("darkgreen", "darkred"),
+        xlab = "Time",
+        ylab = "",
+        main = "A Spurious Relationship") 
+```
+
+]
+.pull-right[
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-29-1.png" width="504" /&gt;
+
+```r
+summary(dynlm(RWs[, 2] ~ L(RWs[, 3])))$coefficients
+&gt;              Estimate Std. Error   t value     Pr(&gt;|t|)
+&gt; (Intercept) -3.459488  0.3635104 -9.516889 1.354156e-15
+&gt; L(RWs[, 3])  1.047195  0.1450874  7.217687 1.135828e-10
+```
+
+]
+
+---
+# 伪回归实例
+.pull-left[
+&lt;img src="lec13_ts_files/figure-html/unnamed-chunk-31-1.png" width="504" /&gt;
+
+]
+.pull-right[
+
+```r
+SR_Unemp1 &lt;- dynlm(ts(USUnemp["1962::1985"]) ~ ts(JPIndProd["1962::1985"]))
+coeftest(SR_Unemp1, vcov = sandwich)
+```
+`$$\begin{align}
+  \widehat{U.S. UR}_t = -\underset{(1.12)}{2.37} + \underset{(0.29)}{2.22} \log(JapaneseIP_t)
+\end{align}$$`
+
+
+```r
+SR_Unemp2 &lt;- dynlm(ts(USUnemp["1986::2012"]) ~ ts(JPIndProd["1986::2012"]))
+coeftest(SR_Unemp2, vcov = sandwich)
+```
+`$$\begin{align}
+  \widehat{U.S. UR}_t = \underset{(5.41)}{41.78} -\underset{(1.17)}{7.78} \log(JapaneseIP)_t
+\end{align}$$`
+]
+
+---
+# 单位根检验
+
+Dickey &amp; Fuller (1979): AR(1) 模型的根为1
+
+`$$\begin{align*}
+  H_0: \beta_1 = 1 \ \ \ \text{vs.} \ \ \ H_1: \lvert\beta_1\rvert &lt; 1.
+\end{align*}$$`
+或者写为
+`$$\begin{align}
+  Y_t = \beta_0 + \beta_1 Y_{t-1} + u_t \ \ \Leftrightarrow \ \ \Delta Y_t = \beta_0 + \delta Y_{t-1} + u_t 
+\end{align}$$`
+
+`$$\begin{align*}
+  H_0: \delta = 0 \ \ \ \text{vs.} \ \ \ H_1: \delta &lt; 0
+\end{align*}$$`
+
+将AR(1)扩展到AR(P)模型，得到ADF检验
+
+`$$\begin{align}
+  \Delta Y_t = \beta_0 + \delta Y_{t-1} + \gamma_1 \Delta_1 Y_{t-1} + \gamma_2 \Delta Y_{t-2} + \dots + \gamma_p \Delta Y_{t-p} + u_t.
+\end{align}$$`
+
+`\(H_0: \delta = 0 \ \ \ \text{vs.} \ \ \ H_1: \delta &lt; 0\)`
+
+如果Y中有确定性的时间趋势，检验模型为
+
+`$$\begin{align}
+  \Delta Y_t = \beta_0 + at + \delta Y_{t-1} + \gamma_1 \Delta_1 Y_{t-1} + \gamma_2 \Delta Y_{t-2} + \dots + \gamma_p \Delta Y_{t-p} + u_t, 
+\end{align}$$`
+
+---
+# 单位根检验实例
+检验美国GDP序列中是否存在单位根
+`$$\begin{align*}
+  \Delta\log(GDP_t) = \beta_0 + \alpha t + \beta_1 \log(GDP_{t-1}) + \beta_2 \Delta \log(GDP_{t-1}) + \beta_3 \Delta \log(GDP_{t-2}) + u_t.
+\end{align*}$$`
+
+
+```r
+LogGDP &lt;- ts(log(GDP["1962::2012"]))
+coeftest(
+  dynlm(diff(LogGDP) ~ trend(LogGDP, scale = F) + L(LogGDP) 
+                     + diff(L(LogGDP)) + diff(L(LogGDP), 2)))
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;                             Estimate  Std. Error t value Pr(&gt;|t|)   
+&gt; (Intercept)               0.27877045  0.11793233  2.3638 0.019066 * 
+&gt; trend(LogGDP, scale = F)  0.00023818  0.00011090  2.1476 0.032970 * 
+&gt; L(LogGDP)                -0.03332452  0.01441436 -2.3119 0.021822 * 
+&gt; diff(L(LogGDP))           0.08317976  0.11295542  0.7364 0.462371   
+&gt; diff(L(LogGDP), 2)        0.18763384  0.07055574  2.6594 0.008476 **
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+`$$\begin{align*}
+  \Delta\log(GDP_t) =&amp; \underset{(0.118)}{0.28} + \underset{(0.0001)}{0.0002} t -\underset{(0.014)}{0.033} \log(GDP_{t-1}) \\
+   &amp; + \underset{(0.113)}{0.083} \Delta \log(GDP_{t-1}) + \underset{(0.071)}{0.188} \Delta \log(GDP_{t-2}) + u_t,
+\end{align*}$$`
+---
+# ADF检验统计量
+
+此处的ADF t统计量为：$t=-0.033/0.014 = - 2.35$，但是其拒绝域的临界值不是由t分布得到，需要通过模拟获得。在R中可以通过`ur.df()`函数进行ADF检验：
+
+```r
+library(urca)
+summary(ur.df(LogGDP, 
+              type = "trend", 
+              lags = 2, 
+              selectlags = "Fixed"))
+&gt; 
+&gt; ############################################### 
+&gt; # Augmented Dickey-Fuller Test Unit Root Test # 
+&gt; ############################################### 
+&gt; 
+&gt; Test regression trend 
+&gt; 
+&gt; 
+&gt; Call:
+&gt; lm(formula = z.diff ~ z.lag.1 + 1 + tt + z.diff.lag)
+&gt; 
+&gt; Residuals:
+&gt;       Min        1Q    Median        3Q       Max 
+&gt; -0.025580 -0.004109  0.000321  0.004869  0.032781 
+&gt; 
+&gt; Coefficients:
+&gt;               Estimate Std. Error t value Pr(&gt;|t|)    
+&gt; (Intercept)  0.2790086  0.1180427   2.364 0.019076 *  
+&gt; z.lag.1     -0.0333245  0.0144144  -2.312 0.021822 *  
+&gt; tt           0.0002382  0.0001109   2.148 0.032970 *  
+&gt; z.diff.lag1  0.2708136  0.0697696   3.882 0.000142 ***
+&gt; z.diff.lag2  0.1876338  0.0705557   2.659 0.008476 ** 
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+&gt; 
+&gt; Residual standard error: 0.007704 on 196 degrees of freedom
+&gt; Multiple R-squared:  0.1783,	Adjusted R-squared:  0.1616 
+&gt; F-statistic: 10.63 on 4 and 196 DF,  p-value: 8.076e-08
+&gt; 
+&gt; 
+&gt; Value of test-statistic is: -2.3119 11.2558 4.267 
+&gt; 
+&gt; Critical values for test statistics: 
+&gt;       1pct  5pct 10pct
+&gt; tau3 -3.99 -3.43 -3.13
+&gt; phi2  6.22  4.75  4.07
+&gt; phi3  8.43  6.49  5.47
+```
+
+
+---
+# 时间序列回归与格兰杰因果
+
+$$
+`\begin{equation}
+  \begin{aligned}
+  Y_t =&amp;  \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \dots + \beta_{p} Y_{t-p} \\
+      &amp;+  \delta_{11} X_{1,t-1} + \delta_{12} X_{1,t-2} + \dots + \delta_{1q} X_{1,t-q} \\
+      &amp;+  \dots \\
+      &amp;+  \delta_{k1} X_{k,t-1} + \delta_{k2} X_{k,t-2} + \dots + \delta_{kq} X_{k,t-q} \\
+      &amp;+  u_t 
+  \end{aligned}
+\end{equation}`
+$$
+如果以上回归中的X的系数不全为0，则代表X的过去值有助于预测Y，则称X为Y的格兰杰因 (Granger cause)
+
+格兰杰因果检验从本质上就是一个ADL回归联合系数F检验。
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
