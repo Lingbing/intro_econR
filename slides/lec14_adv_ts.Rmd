@@ -1,0 +1,281 @@
+---
+title: "时间序列分析进阶"
+subtitle: ""
+author: "冯凌秉"
+institute: "<span style = 'font-size: 70%;'>
+  江西财经大学 <br> 
+  产业经济研究院</span>"
+date: '2020<br><br>
+  `r icon::fa("paper-plane")` <feng.lingbing@jxufe.edu.cn>'
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    lib_dir: libs
+    includes:
+      after_body: insert-logo.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+```{r, setup, include=FALSE,echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = ">", 
+                      fig.retina = 3, warning = FALSE, message = FALSE)
+library(RefManageR)
+library(dynlm)
+library(car)
+library(vars)
+library(stargazer)
+library(sjPlot)
+library(readxl)
+library(sjmisc)
+library(quantmod)
+BibOptions(check.entries = FALSE, bib.style = "authoryear", style = "markdown", dashed = TRUE)
+bib <- ReadBib("bib1.bib")
+css.fig <- list(
+    css.depvarhead = 'color: red;',
+    css.centeralign = 'text-align: left;', 
+    css.firsttablecol = 'font-weight: bold;', 
+    css.summary = 'color: blue;'
+  )
+```
+# 向量自回归模型 VAR
+
+- 向量自回归模型用于处理多维时间序列数据。
+
+$$\begin{align*}
+  Y_t =& \, \beta_{10} + \beta_{11} Y_{t-1} + \dots + \beta_{1p} Y_{t-p} + \gamma_{11} X_{t-1} + \dots + \gamma_{1p} X_{t-p} + u_{1t}, \\
+  X_t =& \, \beta_{20} + \beta_{21} Y_{t-1} + \dots + \beta_{2p} Y_{t-p} + \gamma_{21} X_{t-1} + \dots + \gamma_{2p} X_{t-p} + u_{2t}.
+\end{align*}$$
+
+- VAR建模前要利用经济理论确定模型中需要加入的变量。
+
+- VAR模型的滞后阶数可以通过BIC确定。
+
+
+
+$$\begin{align*}
+  BIC(p) =& \, \log\left[\text{det}(\widehat{\Sigma}_u)\right] + k(kp+1) \frac{\log(T)}{T}.
+\end{align*}$$
+
+- VAR模型中变量的加入和滞后阶数的选择都十分重要，并且需要持谨慎保守态度。
+
+- 无关解释变量的加入以及过高的滞后阶数都将削弱模型的解释和预测能力。
+
+---
+# VAR建模实例
+
+$$\begin{align*}
+ GDPGR_t =& \, \beta_{10} + \beta_{11} GDPGR_{t-1} + \beta_{12} GDPGR_{t-2} + \gamma_{11} TSpread_{t-1} + \gamma_{12} TSpread_{t-2} + u_{1t}, \\
+ TSpread_t =& \, \beta_{20} + \beta_{21} GDPGR_{t-1} + \beta_{22} GDPGR_{t-2} + \gamma_{21} TSpread_{t-1} + \gamma_{22} TSpread_{t-2} + u_{2t}.
+\end{align*}$$
+```{r}
+USMacroSWQ <- read_xlsx("data/us_macro_quarterly.xlsx",
+                         sheet = 1,
+                         col_types = c("text", rep("numeric", 9)))
+
+# set the column names
+colnames(USMacroSWQ) <- c("Date", "GDPC96", "JAPAN_IP", "PCECTPI", "GS10", 
+                          "GS1", "TB3MS", "UNRATE", "EXUSUK", "CPIAUCSL")
+
+# format the date column
+USMacroSWQ$Date <- as.yearqtr(USMacroSWQ$Date, format = "%Y:0%q")
+
+# define GDP as ts object
+GDP <- ts(USMacroSWQ$GDPC96,
+          start = c(1957, 1), 
+          end = c(2013, 4), 
+          frequency = 4)
+
+# define GDP growth as a ts object
+GDPGrowth <- ts(400*log(GDP[-1]/GDP[-length(GDP)]),
+                start = c(1957, 2), 
+                end = c(2013, 4), 
+                frequency = 4)
+
+# 3-months Treasury bill interest rate as a 'ts' object
+TB3MS <- ts(USMacroSWQ$TB3MS,
+            start = c(1957, 1), 
+            end = c(2013, 4), 
+            frequency = 4)
+
+# 10-years Treasury bonds interest rate as a 'ts' object
+TB10YS <- ts(USMacroSWQ$GS10, 
+              start = c(1957, 1), 
+              end = c(2013, 4), 
+              frequency = 4)
+
+# generate the term spread series
+TSpread <- TB10YS - TB3MS
+```
+
+---
+# VAR的OLS估计
+```{r results='hide'}
+VAR_EQ1 <- dynlm(GDPGrowth ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2), 
+                 start = c(1981, 1), 
+                 end = c(2012, 4))
+
+VAR_EQ2 <- dynlm(TSpread ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2),
+                 start = c(1981, 1),
+                 end = c(2012, 4))
+
+# rename regressors for better readability
+names(VAR_EQ1$coefficients) <- c("Intercept","Growth_t-1", 
+                                 "Growth_t-2", "TSpread_t-1", "TSpread_t-2")
+names(VAR_EQ2$coefficients) <- names(VAR_EQ1$coefficients)
+
+# robust coefficient summaries
+coeftest(VAR_EQ1, vcov. = sandwich)
+coeftest(VAR_EQ2, vcov. = sandwich)
+```
+
+$$\begin{align*}
+ GDPGR_t =& \, \underset{(0.46)}{0.52} + \underset{(0.11)}{0.29} GDPGR_{t-1} + \underset{(0.09)}{0.22} GDPGR_{t-2} -\underset{(0.36)}{0.90} TSpread_{t-1} + \underset{(0.39)}{1.33} TSpread_{t-2} \\
+ TSpread_t =& \, \underset{(0.12)}{0.46} + \underset{(0.02)}{0.01} GDPGR_{t-1} -\underset{(0.03)}{0.06} GDPGR_{t-2} + \underset{(0.10)}{1.06} TSpread_{t-1} -\underset{(0.11)}{0.22} TSpread_{t-2} 
+\end{align*}$$
+
+---
+# VAR直接估计
+```{r}
+# set up data for estimation using `VAR()`
+VAR_data <- window(ts.union(GDPGrowth, TSpread), start = c(1980, 3), end = c(2012, 4))
+
+# estimate model coefficients using `VAR()`
+VAR_est <- VAR(y = VAR_data, p = 2)
+VAR_est
+```
+
+---
+# 利用VAR检验格兰杰因果
+.pull-left[
+```{r}
+linearHypothesis(VAR_EQ1, 
+                 hypothesis.matrix = c("TSpread_t-1", "TSpread_t-2"),
+                 vcov. = sandwich)
+```
+]
+.pull-right[
+```{r}
+linearHypothesis(VAR_EQ2, 
+                 hypothesis.matrix = c("Growth_t-1", "Growth_t-2"),
+                 vcov. = sandwich)
+```
+]
+
+---
+# VAR预测
+.pull-left[
+```{r}
+forecasts <- predict(VAR_est)
+forecasts
+```
+
+]
+.pull-right[
+```{r echo=F}
+plot(forecasts)
+```
+
+]
+
+
+---
+# DF-GLS单位根检验
+
+PCE指数数据具有比单位根过程更加平滑的趋势。
+
+这类序列一般是I(2)单整的序列，需要差分两次方可平稳化。
+
+.pull-left[
+```{r eval=F}
+PCECTPI <- ts(log(USMacroSWQ$PCECTPI), 
+              start = c(1957, 1), 
+              end = c(2012, 4), 
+              freq = 4)
+
+# plot logarithm of the PCE Price Index
+plot(log(PCECTPI),
+     main = "Log of United States PCE Price Index",
+     ylab = "Logarithm",
+     col = "steelblue", 
+     lwd = 2)
+```
+
+]
+.pull-right[
+```{r echo=F}
+PCECTPI <- ts(log(USMacroSWQ$PCECTPI), 
+              start = c(1957, 1), 
+              end = c(2012, 4), 
+              freq = 4)
+
+# plot logarithm of the PCE Price Index
+plot(log(PCECTPI),
+     main = "Log of United States PCE Price Index",
+     ylab = "Logarithm",
+     col = "steelblue", 
+     lwd = 2)
+```
+
+]
+
+---
+# 一次差分后非平稳
+.pull-left[
+```{r eval=F}
+plot(400 * Delt(PCECTPI),
+     main = "United States PCE Price Index",
+     ylab = "Percent per annum",
+     col = "steelblue", 
+     lwd = 2)
+
+# add a dashed line at y =  0 
+abline(0, 0, lty = 2)
+```
+
+- DF-GLS相比ADF检验具有更高的效力。
+```{r eval=F}
+summary(ur.ers(log(window(GDP, start = c(1962, 1), end = c(2012, 4))),
+        model = "trend", 
+        lag.max = 2))
+```
+
+- 检验统计量值为-1.2，5%显著性水平拒绝域的临界值为-2.89，因此差分一次后的序列依然是非平稳的。
+]
+
+
+.pull-right[
+```{r echo=F}
+plot(400 * Delt(PCECTPI),
+     main = "United States PCE Price Index",
+     ylab = "Percent per annum",
+     col = "steelblue", 
+     lwd = 2)
+
+# add a dashed line at y =  0 
+abline(0, 0, lty = 2)
+```
+
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

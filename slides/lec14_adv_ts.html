@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>时间序列分析进阶</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="冯凌秉" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/font-awesome-5.3.1/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="zh-CN.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# 时间序列分析进阶
+### 冯凌秉
+### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
+### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
+
+---
+
+
+# 向量自回归模型 VAR
+
+- 向量自回归模型用于处理多维时间序列数据。
+
+`$$\begin{align*}
+  Y_t =&amp; \, \beta_{10} + \beta_{11} Y_{t-1} + \dots + \beta_{1p} Y_{t-p} + \gamma_{11} X_{t-1} + \dots + \gamma_{1p} X_{t-p} + u_{1t}, \\
+  X_t =&amp; \, \beta_{20} + \beta_{21} Y_{t-1} + \dots + \beta_{2p} Y_{t-p} + \gamma_{21} X_{t-1} + \dots + \gamma_{2p} X_{t-p} + u_{2t}.
+\end{align*}$$`
+
+- VAR建模前要利用经济理论确定模型中需要加入的变量。
+
+- VAR模型的滞后阶数可以通过BIC确定。
+
+
+
+`$$\begin{align*}
+  BIC(p) =&amp; \, \log\left[\text{det}(\widehat{\Sigma}_u)\right] + k(kp+1) \frac{\log(T)}{T}.
+\end{align*}$$`
+
+- VAR模型中变量的加入和滞后阶数的选择都十分重要，并且需要持谨慎保守态度。
+
+- 无关解释变量的加入以及过高的滞后阶数都将削弱模型的解释和预测能力。
+
+---
+# VAR建模实例
+
+`$$\begin{align*}
+ GDPGR_t =&amp; \, \beta_{10} + \beta_{11} GDPGR_{t-1} + \beta_{12} GDPGR_{t-2} + \gamma_{11} TSpread_{t-1} + \gamma_{12} TSpread_{t-2} + u_{1t}, \\
+ TSpread_t =&amp; \, \beta_{20} + \beta_{21} GDPGR_{t-1} + \beta_{22} GDPGR_{t-2} + \gamma_{21} TSpread_{t-1} + \gamma_{22} TSpread_{t-2} + u_{2t}.
+\end{align*}$$`
+
+```r
+USMacroSWQ &lt;- read_xlsx("data/us_macro_quarterly.xlsx",
+                         sheet = 1,
+                         col_types = c("text", rep("numeric", 9)))
+
+# set the column names
+colnames(USMacroSWQ) &lt;- c("Date", "GDPC96", "JAPAN_IP", "PCECTPI", "GS10", 
+                          "GS1", "TB3MS", "UNRATE", "EXUSUK", "CPIAUCSL")
+
+# format the date column
+USMacroSWQ$Date &lt;- as.yearqtr(USMacroSWQ$Date, format = "%Y:0%q")
+
+# define GDP as ts object
+GDP &lt;- ts(USMacroSWQ$GDPC96,
+          start = c(1957, 1), 
+          end = c(2013, 4), 
+          frequency = 4)
+
+# define GDP growth as a ts object
+GDPGrowth &lt;- ts(400*log(GDP[-1]/GDP[-length(GDP)]),
+                start = c(1957, 2), 
+                end = c(2013, 4), 
+                frequency = 4)
+
+# 3-months Treasury bill interest rate as a 'ts' object
+TB3MS &lt;- ts(USMacroSWQ$TB3MS,
+            start = c(1957, 1), 
+            end = c(2013, 4), 
+            frequency = 4)
+
+# 10-years Treasury bonds interest rate as a 'ts' object
+TB10YS &lt;- ts(USMacroSWQ$GS10, 
+              start = c(1957, 1), 
+              end = c(2013, 4), 
+              frequency = 4)
+
+# generate the term spread series
+TSpread &lt;- TB10YS - TB3MS
+```
+
+---
+# VAR的OLS估计
+
+```r
+VAR_EQ1 &lt;- dynlm(GDPGrowth ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2), 
+                 start = c(1981, 1), 
+                 end = c(2012, 4))
+
+VAR_EQ2 &lt;- dynlm(TSpread ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2),
+                 start = c(1981, 1),
+                 end = c(2012, 4))
+
+# rename regressors for better readability
+names(VAR_EQ1$coefficients) &lt;- c("Intercept","Growth_t-1", 
+                                 "Growth_t-2", "TSpread_t-1", "TSpread_t-2")
+names(VAR_EQ2$coefficients) &lt;- names(VAR_EQ1$coefficients)
+
+# robust coefficient summaries
+coeftest(VAR_EQ1, vcov. = sandwich)
+coeftest(VAR_EQ2, vcov. = sandwich)
+```
+
+`$$\begin{align*}
+ GDPGR_t =&amp; \, \underset{(0.46)}{0.52} + \underset{(0.11)}{0.29} GDPGR_{t-1} + \underset{(0.09)}{0.22} GDPGR_{t-2} -\underset{(0.36)}{0.90} TSpread_{t-1} + \underset{(0.39)}{1.33} TSpread_{t-2} \\
+ TSpread_t =&amp; \, \underset{(0.12)}{0.46} + \underset{(0.02)}{0.01} GDPGR_{t-1} -\underset{(0.03)}{0.06} GDPGR_{t-2} + \underset{(0.10)}{1.06} TSpread_{t-1} -\underset{(0.11)}{0.22} TSpread_{t-2} 
+\end{align*}$$`
+
+---
+# VAR直接估计
+
+```r
+# set up data for estimation using `VAR()`
+VAR_data &lt;- window(ts.union(GDPGrowth, TSpread), start = c(1980, 3), end = c(2012, 4))
+
+# estimate model coefficients using `VAR()`
+VAR_est &lt;- VAR(y = VAR_data, p = 2)
+VAR_est
+&gt; 
+&gt; VAR Estimation Results:
+&gt; ======================= 
+&gt; 
+&gt; Estimated coefficients for equation GDPGrowth: 
+&gt; ============================================== 
+&gt; Call:
+&gt; GDPGrowth = GDPGrowth.l1 + TSpread.l1 + GDPGrowth.l2 + TSpread.l2 + const 
+&gt; 
+&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2 
+&gt;    0.2895533   -0.9025493    0.2163919    1.3298305 
+&gt;        const 
+&gt;    0.5163440 
+&gt; 
+&gt; 
+&gt; Estimated coefficients for equation TSpread: 
+&gt; ============================================ 
+&gt; Call:
+&gt; TSpread = GDPGrowth.l1 + TSpread.l1 + GDPGrowth.l2 + TSpread.l2 + const 
+&gt; 
+&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2 
+&gt;  0.009978489  1.058227945 -0.057245123 -0.219190243 
+&gt;        const 
+&gt;  0.455773969
+```
+
+---
+# 利用VAR检验格兰杰因果
+.pull-left[
+
+```r
+linearHypothesis(VAR_EQ1, 
+                 hypothesis.matrix = c("TSpread_t-1", "TSpread_t-2"),
+                 vcov. = sandwich)
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; TSpread_t - 0
+&gt; TSpread_t - 2 = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: GDPGrowth ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2)
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F   Pr(&gt;F)   
+&gt; 1    125                      
+&gt; 2    123  2 5.9094 0.003544 **
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+.pull-right[
+
+```r
+linearHypothesis(VAR_EQ2, 
+                 hypothesis.matrix = c("Growth_t-1", "Growth_t-2"),
+                 vcov. = sandwich)
+&gt; Linear hypothesis test
+&gt; 
+&gt; Hypothesis:
+&gt; Growth_t - 0
+&gt; Growth_t - 2 = 0
+&gt; 
+&gt; Model 1: restricted model
+&gt; Model 2: TSpread ~ L(GDPGrowth, 1:2) + L(TSpread, 1:2)
+&gt; 
+&gt; Note: Coefficient covariance matrix supplied.
+&gt; 
+&gt;   Res.Df Df      F  Pr(&gt;F)  
+&gt; 1    125                    
+&gt; 2    123  2 3.4777 0.03395 *
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+]
+
+---
+# VAR预测
+.pull-left[
+
+```r
+forecasts &lt;- predict(VAR_est)
+forecasts
+&gt; $GDPGrowth
+&gt;           fcst     lower    upper       CI
+&gt;  [1,] 1.738653 -3.006124 6.483430 4.744777
+&gt;  [2,] 1.692193 -3.312731 6.697118 5.004925
+&gt;  [3,] 1.911852 -3.282880 7.106583 5.194731
+&gt;  [4,] 2.137070 -3.164247 7.438386 5.301317
+&gt;  [5,] 2.329667 -3.041435 7.700769 5.371102
+&gt;  [6,] 2.496815 -2.931819 7.925449 5.428634
+&gt;  [7,] 2.631849 -2.846390 8.110088 5.478239
+&gt;  [8,] 2.734819 -2.785426 8.255064 5.520245
+&gt;  [9,] 2.808291 -2.745597 8.362180 5.553889
+&gt; [10,] 2.856169 -2.722905 8.435243 5.579074
+&gt; 
+&gt; $TSpread
+&gt;           fcst        lower    upper        CI
+&gt;  [1,] 1.676746  0.708471226 2.645021 0.9682751
+&gt;  [2,] 1.884098  0.471880228 3.296316 1.4122179
+&gt;  [3,] 1.999409  0.336348101 3.662470 1.6630609
+&gt;  [4,] 2.080836  0.242407507 3.919265 1.8384285
+&gt;  [5,] 2.131402  0.175797245 4.087008 1.9556052
+&gt;  [6,] 2.156094  0.125220562 4.186968 2.0308738
+&gt;  [7,] 2.161783  0.085037834 4.238528 2.0767452
+&gt;  [8,] 2.154170  0.051061544 4.257278 2.1031082
+&gt;  [9,] 2.138164  0.020749780 4.255578 2.1174139
+&gt; [10,] 2.117733 -0.007139213 4.242605 2.1248722
+```
+
+]
+.pull-right[
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+
+]
+
+
+---
+# DF-GLS单位根检验
+
+PCE指数数据具有比单位根过程更加平滑的趋势。
+
+这类序列一般是I(2)单整的序列，需要差分两次方可平稳化。
+
+.pull-left[
+
+```r
+PCECTPI &lt;- ts(log(USMacroSWQ$PCECTPI), 
+              start = c(1957, 1), 
+              end = c(2012, 4), 
+              freq = 4)
+
+# plot logarithm of the PCE Price Index
+plot(log(PCECTPI),
+     main = "Log of United States PCE Price Index",
+     ylab = "Logarithm",
+     col = "steelblue", 
+     lwd = 2)
+```
+
+]
+.pull-right[
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-9-1.png" width="504" /&gt;
+
+]
+
+---
+# 一次差分后非平稳
+.pull-left[
+
+```r
+plot(400 * Delt(PCECTPI),
+     main = "United States PCE Price Index",
+     ylab = "Percent per annum",
+     col = "steelblue", 
+     lwd = 2)
+
+# add a dashed line at y =  0 
+abline(0, 0, lty = 2)
+```
+
+- DF-GLS相比ADF检验具有更高的效力。
+
+```r
+summary(ur.ers(log(window(GDP, start = c(1962, 1), end = c(2012, 4))),
+        model = "trend", 
+        lag.max = 2))
+```
+
+- 检验统计量值为-1.2，5%显著性水平拒绝域的临界值为-2.89，因此差分一次后的序列依然是非平稳的。
+]
+
+
+.pull-right[
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-12-1.png" width="504" /&gt;
+
+]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+<style>
+.logo {
+  background-image: url(jxufe_logo.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  width: 50px;
+  height: 60px;
+  z-index: 0;
+}
+</style>
+
+<script>
+document
+  .querySelectorAll(
+    '.remark-slide-content' +
+    ':not(.title-slide)' +
+    // add additional classes to exclude here, e.g.
+    // ':not(.inverse)' +
+    ':not(.hide-logo)'
+  )
+  .forEach(el => {
+    el.innerHTML += '<div class="logo"></div>';
+  });
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
