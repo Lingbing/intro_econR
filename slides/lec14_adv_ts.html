@@ -137,10 +137,8 @@ VAR_est
 &gt; Call:
 &gt; GDPGrowth = GDPGrowth.l1 + TSpread.l1 + GDPGrowth.l2 + TSpread.l2 + const 
 &gt; 
-&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2 
-&gt;    0.2895533   -0.9025493    0.2163919    1.3298305 
-&gt;        const 
-&gt;    0.5163440 
+&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2        const 
+&gt;    0.2895533   -0.9025493    0.2163919    1.3298305    0.5163440 
 &gt; 
 &gt; 
 &gt; Estimated coefficients for equation TSpread: 
@@ -148,10 +146,8 @@ VAR_est
 &gt; Call:
 &gt; TSpread = GDPGrowth.l1 + TSpread.l1 + GDPGrowth.l2 + TSpread.l2 + const 
 &gt; 
-&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2 
-&gt;  0.009978489  1.058227945 -0.057245123 -0.219190243 
-&gt;        const 
-&gt;  0.455773969
+&gt; GDPGrowth.l1   TSpread.l1 GDPGrowth.l2   TSpread.l2        const 
+&gt;  0.009978489  1.058227945 -0.057245123 -0.219190243  0.455773969
 ```
 
 ---
@@ -306,6 +302,215 @@ summary(ur.ers(log(window(GDP, start = c(1962, 1), end = c(2012, 4))),
 &lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-12-1.png" width="504" /&gt;
 
 ]
+
+---
+# 协整
+.pull-left[
+- 如果 `\(X_t\)` 和 `\(Y_t\)` 是I(1)过程，但是存在一个 `\(\theta\)` 使得 `\(Y_t - \theta X_t\)` 是I(0)的，那么称 `\(X_t\)` 和 `\(Y_t\)` 是协整(cointegrated)的。
+
+- 两个时间序列协整，意味着二者共享一个随机趋势。
+
+- 一般认为 `\(\theta\)`是未知也就是需要估计得到的，作简单回归：
+
+`$$Y_t = \alpha + \theta X_t + z_t$$`
+- 再通过单位根检验检验 `\(z_t\)` 是不是平稳序列。如果是，则$X_t$ 和 `\(Y_t\)` 是协整的。
+
+- 该方法成为Engle-Granger两步法。
+]
+
+
+.pull-right[
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-13-1.png" width="504" /&gt;
+
+]
+
+---
+# 协整实例
+
+- 分别利用ADF和DF-GLS法检验二序列是否为单整序列
+
+
+```r
+ur.df(window(TB3MS, c(1962, 1), c(2012, 4)), 
+      lags = 6, selectlags = "AIC", type = "drift")
+ur.df(window(TB10YS, c(1962, 1), c(2012, 4)), 
+      lags = 6, selectlags = "AIC", type = "drift")
+ur.ers(window(TB3MS, c(1962, 1), c(2012, 4)),
+       model = "constant", lag.max = 6)
+ur.ers(window(TB10YS, c(1962, 1), c(2012, 4)),
+       model = "constant", lag.max = 6)
+```
+
+- 再检验其而序列值差是否为平稳序列 (此处默认 `\(\theta=1\)`)
+
+
+```r
+ur.df(window(TB10YS, c(1962, 1), c(2012, 4)) - window(TB3MS, c(1962, 1), c(2012 ,4)), 
+      lags = 6, 
+      selectlags = "AIC", 
+      type = "drift")
+ur.ers(window(TB10YS, c(1962, 1), c(2012, 4)) - window(TB3MS, c(1962, 1), c(2012, 4)),
+       model = "constant", 
+       lag.max = 6)
+```
+
+---
+# 协整估计的Engle-Granger两步法
+
+.pull-left[
+- 第一步：两个时间序列的简单回归
+
+
+```r
+FS_EGADF &lt;- dynlm(window(TB10YS, c(1962, 1), c(2012, 4)) ~ window(TB3MS, c(1962, 1), c(2012, 4)))
+FS_EGADF
+&gt; 
+&gt; Time series regression with "ts" data:
+&gt; Start = 1962(1), End = 2012(4)
+&gt; 
+&gt; Call:
+&gt; dynlm(formula = window(TB10YS, c(1962, 1), c(2012, 4)) ~ window(TB3MS, 
+&gt;     c(1962, 1), c(2012, 4)))
+&gt; 
+&gt; Coefficients:
+&gt;                           (Intercept)  window(TB3MS, c(1962, 1), c(2012, 4))  
+&gt;                                2.4642                                 0.8147
+```
+]
+
+.pull-right[
+
+`$$\begin{align*}
+  \widehat{TB10YS}_t = 2.46 + 0.81 \cdot TB3MS_t,
+\end{align*}$$`
+
+- 第二步：回归残差序列平稳性检验
+
+```r
+z_hat &lt;- resid(FS_EGADF)
+# compute the ADF test statistic
+ur.df(z_hat, lags = 6, type = "none", selectlags = "AIC")
+&gt; 
+&gt; ############################################################### 
+&gt; # Augmented Dickey-Fuller Test Unit Root / Cointegration Test # 
+&gt; ############################################################### 
+&gt; 
+&gt; The value of the test statistic is: -3.1935
+```
+
+]
+
+---
+# 协整 - 误差修正模型
+
+- 如果两个序列是协整的，那么其差值序列 `\(Y_{t-1} - \theta X_{t-1}\)` 是平稳的，并且可以在VAR框架下建模。
+
+- 这样的VAR模型称为向量误差修正模型 (VECM, vector error correction model )。 
+
+- 其中 `\(Y_{t} - \theta X_{t}\)` 是误差修正项。误差修正项（长期偏移）的滞后值有助于预测 `\(\Delta X_t\)` 和/或 `\(\Delta Y_t\)` (序列的短期偏移)。
+
+- 也就是两个序列各自的短期波动偏移会被序列的长期稳定关系所预测（修正）
+
+`$$\begin{align*}
+ \widehat{\Delta TB3MS}_t =&amp; \, -\underset{(0.11)}{0.06} + \underset{(0.11)}{0.24} \Delta TB3MS_{t-1} -\underset{(0.15)}{0.16} \Delta TB3MS_{t-2} \\ &amp;+ \underset{(0.13)}{0.11} \Delta TB10YS_{t-1} -\underset{(0.11)}{0.15} \Delta TB10YS_{t-2} + \underset{(0.05)}{0.03} ECT_{t-1} \\
+ \widehat{\Delta TB10YS}_t =&amp; \, \underset{(0.06)}{0.12} -\underset{(0.07)}{0.00} \Delta TB3MS_{t-1} -\underset{(0.04)}{0.07} \Delta TB3MS_{t-2} \\ &amp;+ \underset{(0.10)}{0.23} \Delta TB10YS_{t-1} -\underset{(0.07)}{0.07} \Delta TB10YS_{t-2} -\underset{(0.03)}{0.09} ECT_{t-1}.
+\end{align*}$$`
+---
+# VECM模型实例
+
+
+```r
+TB10YS &lt;- window(TB10YS, c(1962, 1), c(2012 ,4))
+TB3MS &lt;- window(TB3MS, c(1962, 1), c(2012, 4))
+VECM_ECT &lt;- TB10YS - TB3MS
+VECM_EQ1 &lt;- dynlm(d(TB10YS) ~ L(d(TB3MS), 1:2) + L(d(TB10YS), 1:2) + L(VECM_ECT))
+VECM_EQ2 &lt;- dynlm(d(TB3MS) ~ L(d(TB3MS), 1:2) + L(d(TB10YS), 1:2) + L(VECM_ECT))
+names(VECM_EQ1$coefficients) &lt;- c("Intercept", "D_TB3MS_l1", "D_TB3MS_l2","D_TB10YS_l1", "D_TB10YS_l2", "ect_l1")
+names(VECM_EQ2$coefficients) &lt;- names(VECM_EQ1$coefficients)
+# coefficient summaries using HAC standard errors
+coeftest(VECM_EQ1, vcov. = NeweyWest(VECM_EQ1, prewhite = F, adjust = T))
+&gt; 
+&gt; t test of coefficients:
+&gt; 
+&gt;               Estimate Std. Error t value Pr(&gt;|t|)   
+&gt; Intercept    0.1227089  0.0551419  2.2253 0.027205 * 
+&gt; D_TB3MS_l1  -0.0016601  0.0727060 -0.0228 0.981807   
+&gt; D_TB3MS_l2  -0.0680845  0.0435059 -1.5649 0.119216   
+&gt; D_TB10YS_l1  0.2264878  0.0957071  2.3665 0.018939 * 
+&gt; D_TB10YS_l2 -0.0734486  0.0703476 -1.0441 0.297740   
+&gt; ect_l1      -0.0878871  0.0285644 -3.0768 0.002393 **
+&gt; ---
+&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+---
+# 波动率模型
+.pull-left[
+
+```r
+W5000 &lt;- read.csv2("data/Wilshire5000.csv", 
+                   stringsAsFactors = F, 
+                   header = T, 
+                   sep = ",", 
+                   na.strings = ".")
+
+W5000$DATE &lt;- as.Date(W5000$DATE)
+W5000$WILL5000INDFC &lt;- as.numeric(W5000$WILL5000INDFC)
+W5000 &lt;- na.omit(W5000)
+# compute daily percentage changes
+W5000_PC &lt;- data.frame("Date" = W5000$DATE, 
+                       "Value" = as.numeric(Delt(W5000$WILL5000INDFC) * 100))
+W5000_PC &lt;- na.omit(W5000_PC)
+plot(W5000_PC, 
+     ylab = "Percent", 
+     main = "Daily Percentage Changes",
+     type="l", 
+     col = "steelblue", 
+     lwd = 0.5)
+abline(0, 0)
+```
+
+]
+
+.pull-right[
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-20-1.png" width="504" /&gt;
+
+]
+
+---
+# 序列 ACF
+
+ACF图显示，股票指数原序列的自相关性不显著，但是序列的平方序列有显著的自相关性。这就是波动率的聚集效应 (volatility clustering)。GARCH模型可以捕捉波动率的这种典型特征。
+.pull-left[
+
+```r
+acf(W5000_PC$Value)
+```
+
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-21-1.png" width="504" /&gt;
+
+]
+.pull-right[
+
+```r
+acf(W5000_PC$Value^2)
+```
+
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-22-1.png" width="504" /&gt;
+]
+
+---
+# 波动率GARCH模型
+考虑ADL(1,1)模型：
+`$$Y_t = \beta_0 + \beta_1 Y_{t-1} + \gamma_1 X_{t-1} + u_t,$$`
+- 误差项的条件方差为 `\(\sigma^2_t = Var(u_t | u_{t-1},u_{t-2},\ldots)\)`。Engle (1982)建议用一个AR(p)模型对此条件方差建模：
+`$$\begin{align}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, \tag{16.1}
+\end{align}$$`
+
+- 这就是ARCH (autoregressive conditional heteroskedasticity) 模型。一般限定 `\(\alpha_0&gt;0, \alpha_1,\ldots,\alpha_p\geq0\)`
+
+- Bollerslev (1986)
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

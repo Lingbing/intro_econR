@@ -260,19 +260,227 @@ abline(0, 0, lty = 2)
 
 ]
 
+---
+# 协整
+.pull-left[
+- 如果 $X_t$ 和 $Y_t$ 是I(1)过程，但是存在一个 $\theta$ 使得 $Y_t - \theta X_t$ 是I(0)的，那么称 $X_t$ 和 $Y_t$ 是协整(cointegrated)的。
+
+- 两个时间序列协整，意味着二者共享一个随机趋势。
+
+- 一般认为 $\theta$是未知也就是需要估计得到的，作简单回归：
+
+$$Y_t = \alpha + \theta X_t + z_t$$
+- 再通过单位根检验检验 $z_t$ 是不是平稳序列。如果是，则$X_t$ 和 $Y_t$ 是协整的。
+
+- 该方法成为Engle-Granger两步法。
+]
 
 
+.pull-right[
+```{r echo=F}
+plot(merge(as.zoo(TB3MS), as.zoo(TB10YS)), 
+     plot.type = "single", 
+     lty = c(2, 1),
+     lwd = 2,
+     xlab = "Date",
+     ylab = "Percent per annum",
+     ylim = c(-5, 17),
+     main = "Interest Rates")
 
+# add the term spread series
+lines(as.zoo(TSpread), 
+     col = "steelblue",
+     lwd = 2,
+     xlab = "Date",
+     ylab = "Percent per annum",
+     main = "Term Spread")
 
+# shade the term spread
+polygon(c(time(TB3MS), rev(time(TB3MS))), 
+        c(TB10YS, rev(TB3MS)),
+        col = "steelblue",
+        border = NA)
 
+# add horizontal line add 0
+abline(0, 0)
 
+# add a legend
+legend("topright", 
+       legend = c("TB3MS", "TB10YS", "Term Spread"),
+       col = c("black", "black", "steelblue"),
+       lwd = c(2, 2, 2),
+       lty = c(2, 1, 1))
+```
 
+]
 
+---
+# 协整实例
 
+- 分别利用ADF和DF-GLS法检验二序列是否为单整序列
 
+```{r eval=F}
+ur.df(window(TB3MS, c(1962, 1), c(2012, 4)), 
+      lags = 6, selectlags = "AIC", type = "drift")
+ur.df(window(TB10YS, c(1962, 1), c(2012, 4)), 
+      lags = 6, selectlags = "AIC", type = "drift")
+ur.ers(window(TB3MS, c(1962, 1), c(2012, 4)),
+       model = "constant", lag.max = 6)
+ur.ers(window(TB10YS, c(1962, 1), c(2012, 4)),
+       model = "constant", lag.max = 6)
+```
 
+- 再检验其而序列值差是否为平稳序列 (此处默认 $\theta=1$)
 
+```{r eval=F}
+ur.df(window(TB10YS, c(1962, 1), c(2012, 4)) - window(TB3MS, c(1962, 1), c(2012 ,4)), 
+      lags = 6, 
+      selectlags = "AIC", 
+      type = "drift")
+ur.ers(window(TB10YS, c(1962, 1), c(2012, 4)) - window(TB3MS, c(1962, 1), c(2012, 4)),
+       model = "constant", 
+       lag.max = 6)
+```
 
+---
+# 协整估计的Engle-Granger两步法
+
+.pull-left[
+- 第一步：两个时间序列的简单回归
+
+```{r}
+FS_EGADF <- dynlm(window(TB10YS, c(1962, 1), c(2012, 4)) ~ window(TB3MS, c(1962, 1), c(2012, 4)))
+FS_EGADF
+```
+]
+
+.pull-right[
+
+$$\begin{align*}
+  \widehat{TB10YS}_t = 2.46 + 0.81 \cdot TB3MS_t,
+\end{align*}$$
+
+- 第二步：回归残差序列平稳性检验
+```{r}
+z_hat <- resid(FS_EGADF)
+# compute the ADF test statistic
+ur.df(z_hat, lags = 6, type = "none", selectlags = "AIC")
+```
+
+]
+
+---
+# 协整 - 误差修正模型
+
+- 如果两个序列是协整的，那么其差值序列 $Y_{t-1} - \theta X_{t-1}$ 是平稳的，并且可以在VAR框架下建模。
+
+- 这样的VAR模型称为向量误差修正模型 (VECM, vector error correction model )。 
+
+- 其中 $Y_{t} - \theta X_{t}$ 是误差修正项。误差修正项（长期偏移）的滞后值有助于预测 $\Delta X_t$ 和/或 $\Delta Y_t$ (序列的短期偏移)。
+
+- 也就是两个序列各自的短期波动偏移会被序列的长期稳定关系所预测（修正）
+
+$$\begin{align*}
+ \widehat{\Delta TB3MS}_t =& \, -\underset{(0.11)}{0.06} + \underset{(0.11)}{0.24} \Delta TB3MS_{t-1} -\underset{(0.15)}{0.16} \Delta TB3MS_{t-2} \\ &+ \underset{(0.13)}{0.11} \Delta TB10YS_{t-1} -\underset{(0.11)}{0.15} \Delta TB10YS_{t-2} + \underset{(0.05)}{0.03} ECT_{t-1} \\
+ \widehat{\Delta TB10YS}_t =& \, \underset{(0.06)}{0.12} -\underset{(0.07)}{0.00} \Delta TB3MS_{t-1} -\underset{(0.04)}{0.07} \Delta TB3MS_{t-2} \\ &+ \underset{(0.10)}{0.23} \Delta TB10YS_{t-1} -\underset{(0.07)}{0.07} \Delta TB10YS_{t-2} -\underset{(0.03)}{0.09} ECT_{t-1}.
+\end{align*}$$
+---
+# VECM模型实例
+
+```{r}
+TB10YS <- window(TB10YS, c(1962, 1), c(2012 ,4))
+TB3MS <- window(TB3MS, c(1962, 1), c(2012, 4))
+VECM_ECT <- TB10YS - TB3MS
+VECM_EQ1 <- dynlm(d(TB10YS) ~ L(d(TB3MS), 1:2) + L(d(TB10YS), 1:2) + L(VECM_ECT))
+VECM_EQ2 <- dynlm(d(TB3MS) ~ L(d(TB3MS), 1:2) + L(d(TB10YS), 1:2) + L(VECM_ECT))
+names(VECM_EQ1$coefficients) <- c("Intercept", "D_TB3MS_l1", "D_TB3MS_l2","D_TB10YS_l1", "D_TB10YS_l2", "ect_l1")
+names(VECM_EQ2$coefficients) <- names(VECM_EQ1$coefficients)
+# coefficient summaries using HAC standard errors
+coeftest(VECM_EQ1, vcov. = NeweyWest(VECM_EQ1, prewhite = F, adjust = T))
+```
+
+---
+# 波动率模型
+.pull-left[
+```{r eval=F}
+W5000 <- read.csv2("data/Wilshire5000.csv", 
+                   stringsAsFactors = F, 
+                   header = T, 
+                   sep = ",", 
+                   na.strings = ".")
+
+W5000$DATE <- as.Date(W5000$DATE)
+W5000$WILL5000INDFC <- as.numeric(W5000$WILL5000INDFC)
+W5000 <- na.omit(W5000)
+# compute daily percentage changes
+W5000_PC <- data.frame("Date" = W5000$DATE, 
+                       "Value" = as.numeric(Delt(W5000$WILL5000INDFC) * 100))
+W5000_PC <- na.omit(W5000_PC)
+plot(W5000_PC, 
+     ylab = "Percent", 
+     main = "Daily Percentage Changes",
+     type="l", 
+     col = "steelblue", 
+     lwd = 0.5)
+abline(0, 0)
+```
+
+]
+
+.pull-right[
+```{r echo=F}
+W5000 <- read.csv2("data/Wilshire5000.csv", 
+                   stringsAsFactors = F, 
+                   header = T, 
+                   sep = ",", 
+                   na.strings = ".")
+
+W5000$DATE <- as.Date(W5000$DATE)
+W5000$WILL5000INDFC <- as.numeric(W5000$WILL5000INDFC)
+W5000 <- na.omit(W5000)
+# compute daily percentage changes
+W5000_PC <- data.frame("Date" = W5000$DATE, 
+                       "Value" = as.numeric(Delt(W5000$WILL5000INDFC) * 100))
+W5000_PC <- na.omit(W5000_PC)
+plot(W5000_PC, 
+     ylab = "Percent", 
+     main = "Daily Percentage Changes",
+     type="l", 
+     col = "steelblue", 
+     lwd = 0.5)
+abline(0, 0)
+```
+
+]
+
+---
+# 序列 ACF
+
+ACF图显示，股票指数原序列的自相关性不显著，但是序列的平方序列有显著的自相关性。这就是波动率的聚集效应 (volatility clustering)。GARCH模型可以捕捉波动率的这种典型特征。
+.pull-left[
+```{r}
+acf(W5000_PC$Value)
+```
+
+]
+.pull-right[
+```{r}
+acf(W5000_PC$Value^2)
+```
+]
+
+---
+# 波动率GARCH模型
+考虑ADL(1,1)模型：
+$$Y_t = \beta_0 + \beta_1 Y_{t-1} + \gamma_1 X_{t-1} + u_t,$$
+- 误差项的条件方差为 $\sigma^2_t = Var(u_t | u_{t-1},u_{t-2},\ldots)$。Engle (1982)建议用一个AR(p)模型对此条件方差建模：
+$$\begin{align}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, \tag{16.1}
+\end{align}$$
+
+- 这就是ARCH (autoregressive conditional heteroskedasticity) 模型。一般限定 $\alpha_0>0, \alpha_1,\ldots,\alpha_p\geq0$
+
+- Bollerslev (1986) 
 
 
 
