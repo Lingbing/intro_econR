@@ -1,5 +1,5 @@
 ---
-title: "时间序列分析进阶"
+title: "时间序列分析进阶介绍"
 subtitle: ""
 author: "冯凌秉"
 institute: "<span style = 'font-size: 70%;'>
@@ -475,14 +475,57 @@ acf(W5000_PC$Value^2)
 $$Y_t = \beta_0 + \beta_1 Y_{t-1} + \gamma_1 X_{t-1} + u_t,$$
 - 误差项的条件方差为 $\sigma^2_t = Var(u_t | u_{t-1},u_{t-2},\ldots)$。Engle (1982)建议用一个AR(p)模型对此条件方差建模：
 $$\begin{align}
- \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, \tag{16.1}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, vv
 \end{align}$$
 
 - 这就是ARCH (autoregressive conditional heteroskedasticity) 模型。一般限定 $\alpha_0>0, \alpha_1,\ldots,\alpha_p\geq0$
 
-- Bollerslev (1986) 
+- Bollerslev (1986) 进一步提出了GARCH模型：
+$$\begin{align}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2 + \phi_1 \sigma^2_{t-1} + \dots + \phi_p \sigma^2_{t-q}.
+\end{align}$$
+- GARCH模型本质上是一个ADL(p,q)模型，相比ARCH模型其更为精简，需要估计的参数个数更少。
 
+---
+# GARCH模型实例
 
+下面拟合一个GARCH(1,1)：
+$$\begin{align}
+  R_t =& \, \beta_0 + u_t \ , \ u_t \sim \mathcal{N}(0,\sigma^2_t), \\
+  \sigma^2_t =& \, \alpha_0 + \alpha_1 u_{t-1}^2 + \phi_1 \sigma_{t-1}^2 \tag{16.3}
+\end{align}$$
+```{r}
+library(fGarch)
+GARCH_Wilshire <- garchFit(data = W5000_PC$Value, trace = F)
+```
+
+$$\begin{align}
+  \widehat{R}_t =& \, \underset{(0.010)}{0.068},  \\
+  \widehat{\sigma}^2_t =& \, \underset{(0.002)}{0.011} + \underset{(0.007)}{0.081} u_{t-1}^2 + \underset{(0.008)}{0.909} \sigma_{t-1}^2,
+\end{align}$$
+
+---
+# 条件方差（波动率）拟合图
+
+```{r echo=F,fig.align='center', fig.height=7.5}
+dev_mean_W5000_PC <- W5000_PC$Value - GARCH_Wilshire@fit$coef[1]
+plot(W5000_PC$Date, dev_mean_W5000_PC, 
+     type = "l", 
+     col = "steelblue",
+     ylab = "Percent", 
+     xlab = "Date",
+     main = "Estimated Bands of +- One Conditional Standard Deviation",
+     lwd = 0.2)
+abline(0, 0)
+lines(W5000_PC$Date, 
+      GARCH_Wilshire@fit$coef[1] + GARCH_Wilshire@sigma.t, 
+      col = "darkred", 
+      lwd = 0.5)
+lines(W5000_PC$Date, 
+      GARCH_Wilshire@fit$coef[1] - GARCH_Wilshire@sigma.t, 
+      col = "darkred", 
+      lwd = 0.5)
+```
 
 
 

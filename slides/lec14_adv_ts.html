@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="" xml:lang="">
   <head>
-    <title>时间序列分析进阶</title>
+    <title>时间序列分析进阶介绍</title>
     <meta charset="utf-8" />
     <meta name="author" content="冯凌秉" />
     <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
@@ -12,7 +12,7 @@
     <textarea id="source">
 class: center, middle, inverse, title-slide
 
-# 时间序列分析进阶
+# 时间序列分析进阶介绍
 ### 冯凌秉
 ### <span style="font-size: 70%;"> 江西财经大学 <br> 产业经济研究院</span>
 ### 2020<br><br> <i class="fas  fa-paper-plane "></i> <a href="mailto:feng.lingbing@jxufe.edu.cn" class="email">feng.lingbing@jxufe.edu.cn</a>
@@ -373,8 +373,10 @@ FS_EGADF
 &gt;     c(1962, 1), c(2012, 4)))
 &gt; 
 &gt; Coefficients:
-&gt;                           (Intercept)  window(TB3MS, c(1962, 1), c(2012, 4))  
-&gt;                                2.4642                                 0.8147
+&gt;                           (Intercept)  
+&gt;                                2.4642  
+&gt; window(TB3MS, c(1962, 1), c(2012, 4))  
+&gt;                                0.8147
 ```
 ]
 
@@ -505,12 +507,40 @@ acf(W5000_PC$Value^2)
 `$$Y_t = \beta_0 + \beta_1 Y_{t-1} + \gamma_1 X_{t-1} + u_t,$$`
 - 误差项的条件方差为 `\(\sigma^2_t = Var(u_t | u_{t-1},u_{t-2},\ldots)\)`。Engle (1982)建议用一个AR(p)模型对此条件方差建模：
 `$$\begin{align}
- \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, \tag{16.1}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2, vv
 \end{align}$$`
 
 - 这就是ARCH (autoregressive conditional heteroskedasticity) 模型。一般限定 `\(\alpha_0&gt;0, \alpha_1,\ldots,\alpha_p\geq0\)`
 
-- Bollerslev (1986)
+- Bollerslev (1986) 进一步提出了GARCH模型：
+`$$\begin{align}
+ \sigma^2_t = \alpha_0 + \alpha_1 u_{t-1}^2 + \alpha_2 u_{t-2}^2 + \dots + \alpha_p u_{t-p}^2 + \phi_1 \sigma^2_{t-1} + \dots + \phi_p \sigma^2_{t-q}.
+\end{align}$$`
+- GARCH模型本质上是一个ADL(p,q)模型，相比ARCH模型其更为精简，需要估计的参数个数更少。
+
+---
+# GARCH模型实例
+
+下面拟合一个GARCH(1,1)：
+`$$\begin{align}
+  R_t =&amp; \, \beta_0 + u_t \ , \ u_t \sim \mathcal{N}(0,\sigma^2_t), \\
+  \sigma^2_t =&amp; \, \alpha_0 + \alpha_1 u_{t-1}^2 + \phi_1 \sigma_{t-1}^2 \tag{16.3}
+\end{align}$$`
+
+```r
+library(fGarch)
+GARCH_Wilshire &lt;- garchFit(data = W5000_PC$Value, trace = F)
+```
+
+`$$\begin{align}
+  \widehat{R}_t =&amp; \, \underset{(0.010)}{0.068},  \\
+  \widehat{\sigma}^2_t =&amp; \, \underset{(0.002)}{0.011} + \underset{(0.007)}{0.081} u_{t-1}^2 + \underset{(0.008)}{0.909} \sigma_{t-1}^2,
+\end{align}$$`
+
+---
+# 条件方差（波动率）拟合图
+
+&lt;img src="lec14_adv_ts_files/figure-html/unnamed-chunk-24-1.png" width="504" style="display: block; margin: auto;" /&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
